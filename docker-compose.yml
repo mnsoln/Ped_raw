@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+    backend:
+        build: ./Back
+        volumes:
+            - /home1/data/WORK_DIR_SOLENE/Ped_raw/Back:/Back:rw
+        ports: 
+            - 4280:4280
+        networks:
+            - solene_network
+
+    frontend:
+        build: ./Front
+        volumes:
+            - /home1/data/WORK_DIR_SOLENE/Ped_raw/Front:/Front:rw
+        ports: 
+            - 4271:5173
+        networks:
+            - solene_network
+
+networks:
+    solene_network:
+        driver: "bridge"
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.42.2.0/24
