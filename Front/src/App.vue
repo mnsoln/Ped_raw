@@ -1,4 +1,9 @@
-<template>
+<template> 
+<div>
+  <RouterLink to="/">Table  </RouterLink>
+
+  <RouterLink to="/ping"> Ping </RouterLink>
+</div>
   <RouterView />
 </template>
 
