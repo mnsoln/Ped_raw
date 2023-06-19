@@ -25,6 +25,21 @@ BOOKS = [
     }
 ]
 
+PEDS= [
+    {
+    'id':'Jean Pierre',
+    'alias':'JP',
+    'pere':'LM',
+    'mere':'JM',
+    'sexe':'M',
+    'phenotype':'CLL',
+    'listeHPO':'LDL',
+    'tagStark':'41',
+    }
+]
+
+
+
 def remove_book(book_id):
     for book in BOOKS:
         if book['id'] == book_id:
@@ -42,11 +57,65 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 
+##PED
+
+@app.route('/ped', methods=['GET','POST'])
+def all_peds():
+    response_object = {'status': 'success'}
+    if request.method =='POST':
+        post_data = request.get_json()
+        PEDS.append({
+            'id':post_data.get('id'),
+            'alias':post_data.get('alias'),
+            'pere':post_data.get('pere'),
+            'mere':post_data.get('mere'),
+            'sexe':post_data.get('sexe'),
+            'phenotype':post_data.get('phenotype'),
+            'listeHPO':post_data.get('listeHPO'),
+            'tagStark':post_data.get('tagStark'),
+            })
+        response_object['message'] = "Ajout de fichier ped terminé. N'oubliez pas de sauvegarder les modifications. "
+    else:
+        response_object['peds'] = PEDS
+    return jsonify(response_object)
+
+
+
+
+
+
 
 # sanity check route, la route du site backend ou il va chercher les infos
-@app.route("/ping", methods=["GET"])
+@app.route("/ping", methods=["POST"])
 def ping_pong():
-    return jsonify("pong!")
+    print('oui')
+    post_data = request.get_json()
+    if 'ping' in post_data['msg']:
+        res='pong!'
+    else : res='ping!'
+    return jsonify(res)
+
+
+# @app.route('/ped', methods=['GET', 'POST'])
+# def all_ped():
+#     response_object = {'status': 'success'}
+#     if request.method == 'POST':
+#         post_data = request.get_json()
+#         PEDS.append({
+#             'id': uuid.uuid4().hex,
+#             'individu': post_data.get('individu'),
+#             'alias': post_data.get('alias'),
+#             'pere': post_data.get('pere'),
+#             'mere': post_data.get('mere'),
+#             'sexe': post_data.get('sexe'),
+#             'phenotype': post_data.get('phenotype'),
+#             'listeHPO': post_data.get('listeHPO'),
+#             'tagStark': post_data.get('tagStark'),
+#         })
+#         response_object['message'] = 'Book added!'
+#     else:
+#         response_object['books'] = BOOKS
+#     return jsonify(response_object)
 
 
 
