@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
+import json
 import uuid
 
 
@@ -25,18 +26,18 @@ BOOKS = [
     }
 ]
 
-PEDS= [
-    {
-    'id':'Jean Pierre',
-    'alias':'JP',
-    'pere':'LM',
-    'mere':'JM',
-    'sexe':'M',
-    'phenotype':'CLL',
-    'listeHPO':'LDL',
-    'tagStark':'41',
-    }
-]
+#PEDS= [
+#    {
+#    'id':'Jean Pierre',
+#    'alias':'JP',
+#    'pere':'LM',
+#    'mere':'JM',
+#    'sexe':'M',
+#    'phenotype':'CLL',
+#    'listeHPO':'LDL',
+#    'tagStark':'41',
+#    }
+#]
 
 
 
@@ -50,8 +51,8 @@ def remove_book(book_id):
 
 # instantiate the app
 app = Flask(__name__)
-app.config.from_object(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+# app.config.from_object(__name__)
+# app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # enable CORS
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -61,23 +62,19 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route('/ped', methods=['GET','POST'])
 def all_peds():
-    response_object = {'status': 'success'}
+    #global PEDS
     if request.method =='POST':
         post_data = request.get_json()
-        PEDS.append({
-            'id':post_data.get('id'),
-            'alias':post_data.get('alias'),
-            'pere':post_data.get('pere'),
-            'mere':post_data.get('mere'),
-            'sexe':post_data.get('sexe'),
-            'phenotype':post_data.get('phenotype'),
-            'listeHPO':post_data.get('listeHPO'),
-            'tagStark':post_data.get('tagStark'),
-            })
-        response_object['message'] = "Ajout de fichier ped terminé. N'oubliez pas de sauvegarder les modifications. "
+        print("post request made:", post_data)
+        with open("/Data/data.json",'w') as PEDS:
+            PEDS.write(json.dumps(post_data))
+    
+        # response_object['message'] = "Ajout de fichier ped terminé. N'oubliez pas de sauvegarder les modifications. "
+        return {'status': 'success'}
     else:
-        response_object['peds'] = PEDS
-    return jsonify(response_object)
+        with open("/Data/data.json",'r') as PEDS:
+            data = PEDS.read()
+        return data
 
 
 
@@ -155,4 +152,4 @@ def single_book(book_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=4280)
+    app.run(host="0.0.0.0", port=4280, debug=True)

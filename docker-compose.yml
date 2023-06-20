@@ -5,6 +5,7 @@ services:
         build: ./Back
         volumes:
             - /home1/data/WORK_DIR_SOLENE/Ped_raw/Back:/Back:rw
+            - /home1/data/WORK_DIR_SOLENE/Ped_raw/Data:/Data:rw
         ports: 
             - 4280:4280
         networks:

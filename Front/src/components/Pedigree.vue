@@ -1,85 +1,63 @@
 
-
 <template>
     <div>
         <div class="card">
             <Toolbar class="mb-4">
                 <template #start>
-                    <Button label="Ajouter" icon="pi pi-plus" severity="success"  size="small" @click="newDialog= true" />
+                    <Button label="Add" icon="pi pi-plus" severity="success"  size="small" @click="newDialog= true" />
                     <Button 
-                    label="Supprimer" 
+                    label="Delete" 
                     icon="pi pi-trash" severity="danger" size="small" 
-                    @click="deletePedsDialog = true;"
+                    @click="deletePedsDialog = true"
                     :disabled="!selectedPeds || !selectedPeds.length"
                     />
                 </template>
                 <template #center>
-                    <Button label="Sauvegarder les modifications" icon="pi pi-check" severity="success" class="mr-2" />
+                    <Button label="Save your changes" icon="pi pi-check" severity="success" class="mr-2" 
+                    @click="confirmSaveDialog=true"/>
                 </template>
                 <template #end>
-                    <FileUpload mode="basic" size="small" accept="image/*"  :maxFileSize="1000000" label="Importer" chooseLabel="Import" class="mr-2 inline-block" />
-                    <Button label="Télécharger" icon="pi pi-upload" size="small" severity="help"/>
-                    
+                    <FileUpload mode="basic" size="small" accept="image/*"  :maxFileSize="1000000" label="Import" chooseLabel="Import" class="mr-2 inline-block" />
+                    <Button label="Download" icon="pi pi-upload" size="small" @click="exportCSV($event)" severity="help"/>
                 </template>
             </Toolbar>
+            
+            <div>     
+                  <Dropdown v-model="selectedBase" :options="bases" placeholder="Select a Pedigree Database" class="p-invalid w-full md:w-14rem" />
+            </div>
 
             <DataTable ref="dt" :value="peds" v-model:selection="selectedPeds" dataKey="id" 
                 :paginator="true" :rows="10"
                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown" :rowsPerPageOptions="[5,10,25]"
                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords} peds">
-                <template #header>
-                    <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
-                        <!-- <h4 class="m-0">Manage peds</h4>
-						<span class="p-input-icon-left">
-                            <i class="pi pi-search" />
-                            <InputText v-model="filters['global'].value" placeholder="Search..." />
-                        </span> -->
-                        
-					</div>
-                </template>
 
                 <Column selectionMode="multiple" style="width: 2rem" :exportable="false"></Column>
-                <Column field="id" header="Individu" sortable style="min-width:7rem"></Column>
+                <Column field="id" header="Individual" sortable style="min-width:7rem">
+                </Column>
                 <Column field="alias" header="Aliases" sortable style="min-width:10rem"></Column>
-                <Column field="pere" header="Père" sortable>
+                <Column field="pere" header="Father" sortable>
                 </Column>
-                <Column field="mere" header="Mère" sortable style="min-width:8rem">
-                    <!-- <template #body="slotProps">
-                        {{formatCurrency(slotProps.data.price)}}
-                    </template> -->
+                <Column field="mere" header="Mother" sortable style="min-width:8rem">
                 </Column>
-                <Column field="sexe" header="Sexe" sortable style="min-width:4rem"></Column>
-                <Column field="phenotype" header="Phénotype" sortable style="min-width:12rem">
-                    <!-- <template #body="slotProps">
-                        <Rating :modelValue="slotProps.data.rating" :readonly="true" :cancel="false" />
-                    </template> -->
+                <Column field="sexe" header="Sex" sortable style="min-width:4rem"></Column>
+                <Column field="phenotype" header="Phenotype" sortable style="min-width:12rem">
                 </Column>
-                <Column field="listeHPO" header="Liste HPO" sortable style="min-width:12rem">
-                    <!-- <template #body="slotProps">
-                        <Tag :value="slotProps.data.pere" :severity="getStatusLabel(slotProps.data.pere)" />
-                    </template> -->
+                <Column field="listeHPO" header="HPO List" sortable style="min-width:12rem">
                 </Column>
-                <Column field="tagStark" header="Tags Stark" sortable style="min-width:12rem">
-                    <!-- <template #body="slotProps">
-                        <Tag :value="slotProps.data.pere" :severity="getStatusLabel(slotProps.data.pere)" />
-                    </template> -->
+                <Column field="tagStark" header="Stark Tags" sortable style="min-width:12rem">
                 </Column>
-                <!-- <Column :exportable="false" style="min-width:8rem">
-                    <template #body="slotProps">
-                        <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="editpeds(slotProps.data)" />
-                        <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeletepeds(slotProps.data)" />
-                    </template> 
-                </Column>-->
             </DataTable>
         </div>
     </div>
     
     <Dialog v-model:visible="newDialog" :style="{width: '450px'}" header="Formulaire d'ajout de fichier Pedigree" :modal="true" class="p-fluid">
+      
         <div class="field">
-            <label for="id">Individu</label>
-            <InputText id="id" v-model.trim="ped.id" required="true" 
-              
-              autofocus :class="{'p-invalid': submitted && !peds.id}" />
+            <label for="id">Individual</label>
+            <InputText id="id" v-model.trim="ped.id" 
+              required="true" 
+              autofocus 
+              :class="{'p-invalid': submitted && !ped.id}" />
             <small class="p-error" v-if="submitted && !ped.id">Name is required.</small>
         </div>
         <div class="field">
@@ -87,33 +65,32 @@
             <InputText id="alias" v-model="ped.alias" rows="3" cols="20" />
         </div>
         <div class="field">
-            <label for="pere">Père</label>
+            <label for="pere">Father</label>
             <InputText id="pere" v-model="ped.pere" rows="3" cols="20" />
         </div>
         <div class="field">
-            <label for="mere">Mère</label>
+            <label for="mere">Mother</label>
             <InputText id="mere" v-model="ped.mere" rows="3" cols="20" />
         </div>
         <div class="field">
-            <label for="sexe">Sexe</label> 
+            <label for="sexe">Sex</label> 
             <SelectButton v-model="ped.sexe" :options="sexes" aria-labelledby="basic" rows="3" cols="20" required="true" />
             
         </div>
         <div class="field">
-            <label for="phenotype">Phénotype</label>
-            <SelectButton v-model="ped.phenotype" :options="phenotypes" aria-labelledby="basic" rows="3" cols="20" required="true" />
+            <label for="phenotype">Phenotype</label>
+            <SelectButton v-model="ped.phenotype" :options="phenotypes" aria-labelledby="basic" rows="3" cols="20" required="true"/>
         </div>
         <div class="field">
-            <label for="listeHPO">listeHPO</label>
+            <label for="listeHPO">HPO List</label>
             <Chips id="listeHPO" v-model="ped.listeHPO" rows="3" cols="20" separator=","/>
         <div class="field">
-            <label for="tagStark">tagStark</label>
+            <label for="tagStark">Stark Tags</label>
             <Chips id="tagStark" v-model="ped.tagStark" rows="3" cols="20" separator="!"/>
         </div>
         <div>
           <Button label="Annuler" icon="pi pi-times"  severity="danger" text @click="newDialog = false" />
-          
-          <Button label="Continuer" icon="pi pi-check" text @click="addPed()" />
+          <Button label="Continuer" icon="pi pi-check" type='submit' text @click="addPedTemp()" />
         </div>  
 		</div>
     </Dialog>
@@ -146,7 +123,32 @@
         />
       </template>
     </Dialog>
-
+    
+    <Dialog
+      v-model:visible="confirmSaveDialog"
+      :style="{ width: '450px' }"
+      header="Confirmation"
+      :modal="true">
+      <div class="confirmation-content">
+        <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
+        <span v-if="ped"
+          >  Êtes-vous certain(e) de vouloir sauvegarder toutes les modifications effectuées ?</span>
+      </div>
+      <template #footer>
+        <Button
+          label="Non"
+          icon="pi pi-times"
+          text
+          @click="confirmSaveDialog = false"
+        />
+        <Button
+          label="Oui"
+          icon="pi pi-check"
+          text
+          @click="savePedsDef()"
+        />
+      </template>
+    </Dialog>
   </template>
   
   <script>
@@ -158,49 +160,75 @@
 
 
 
-
-
-
-
 export default {
   data() {
     return {
       peds: ref(),
       ped: ref({}),
+      creation: ref(false),
+      originalPed : ref(),
       newDialog : ref(false),
       deletePedsDialog: ref(false),
+      confirmSaveDialog: ref(false),
       visible : ref(false),
       selectedPeds : ref(),
+      selectedBase: ref(),
+      bases : ["1","2"],
+      dt:ref(),
       submitted : ref(false),
-      sexes : ["M", "F", "Inconnu"],
-      phenotypes : ["Atteint", "Non Atteint", "Inconnu"]
+      sexes : ["M", "F", "Unknown"],
+      phenotypes : ["Affected", "Unaffected", "Missing"],
     };
   },
   methods: {
+    getOriginal() {
+      this.originalPed = JSON.parse(JSON.stringify(this.peds));
+    },
     getPeds() {
       const path = 'http://int0663.hus-integration.fr:4280/ped';
       axios.get(path)
         .then((res) => {
-          this.peds = res.data.peds;
-          //console.log('get');
+          this.peds = res.data;
           console.log(this.peds);
         })
         .catch((error) => {
           console.error(error);
         });
     },
-    openNew() {
-      //peds.value = {};
-      newDialog.value = true;
-    },
-    addPed() {
-      console.log(this.peds);
-      console.log("hello");
-      console.log(this.ped);
-      console.log("iamhere");
-      this.peds.push(JSON.parse(JSON.stringify(this.ped))); //copie dans peds (deep copy)
-      this.newDialog=false;
-      this.ped={};
+    savePedsDef() {
+        const path = 'http://int0663.hus-integration.fr:4280/ped';
+        this.payload = JSON.parse(JSON.stringify(this.peds));
+        console.log(this.peds);
+        console.log("payload");
+        console.log(this.payload);
+        axios.post(path, this.payload)
+          .then(() => {
+            this.getPeds();
+            console.log('Ajouté !');
+            this.confirmSaveDialog=false;
+          })
+          .catch((error) => {
+            console.log(error);
+            this.confirmSaveDialog=false;
+          });
+      },
+    addPedTemp() {
+      this.submitted=true;
+      // console.log(this.ped.id)
+      // console.log(this.peds.value.id)
+      if (this.ped.id){
+        console.log(this.peds);
+        console.log("hello");
+        console.log(this.ped);
+        console.log("iamhere");
+        this.peds.push(JSON.parse(JSON.stringify(this.ped))); //copie dans peds (deep copy)
+        this.newDialog=false;
+        this.ped={};
+        console.log(this.peds);
+        }
+      
+      
+      
     },
     deleteSelectedPeds() {
       this.peds = this.peds.filter(
@@ -208,23 +236,13 @@ export default {
       );
       this.deletePedsDialog = false;
       this.selectedPeds = null;
+      console.log(this.peds);
 
 
-    }
-    // addPeds(payload) {
-    //     const path = 'http://int0663.hus-integration.fr:4280/ped';
-    //     axios.post(path, payload)
-    //       .then(() => {
-    //         this.getPeds();
-    //         // this.message='Ajouté !';
-    //         // this.showMessage=true;
-    //       })
-    //       .catch((error) => {
-  
-    //         console.log(error);
-    //         this.getPeds();
-    //       });
-    //   },
+    },
+    exportCSV() {
+  this.dt.value.exportCSV();
+}
     },
     
   created() {
