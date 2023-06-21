@@ -5,8 +5,7 @@
             <Toolbar class="mb-4">
                 <template #start>
                     <Button label="Add" icon="pi pi-plus" severity="success"  size="small" @click="newDialog= true" />
-                    <Button 
-                    label="Delete" 
+                    <Button label="Delete" 
                     icon="pi pi-trash" severity="danger" size="small" 
                     @click="deletePedsDialog = true"
                     :disabled="!selectedPeds || !selectedPeds.length"
@@ -14,6 +13,7 @@
                 </template>
                 <template #center>
                     <Button label="Save your changes" icon="pi pi-check" severity="success" class="mr-2" 
+                    :disabled="!unsavedChanges"
                     @click="confirmSaveDialog=true"/>
                 </template>
                 <template #end>
@@ -23,7 +23,7 @@
             </Toolbar>
             
             <div>     
-                  <Dropdown v-model="selectedBase" :options="bases" placeholder="Select a Pedigree Database" class="p-invalid w-full md:w-14rem" />
+                  <Dropdown v-model="selectedBase" :options="bases" editable placeholder="Select a Pedigree Database" class="p-invalid w-full md:w-14rem" />
             </div>
 
             <DataTable ref="dt" :value="peds" v-model:selection="selectedPeds" dataKey="id" 
@@ -57,8 +57,8 @@
             <InputText id="id" v-model.trim="ped.id" 
               required="true" 
               autofocus 
-              :class="{'p-invalid': submitted && !ped.id}" />
-            <small class="p-error" v-if="submitted && !ped.id">Name is required.</small>
+              :class="{'p-invalid': submitted && !ped.id | submitted && this.idDuplicate == true }" />
+            <small class="p-error" v-if="submitted && !ped.id | submitted && this.idDuplicate == true">A unique ID is required.</small>
         </div>
         <div class="field">
             <label for="alias">Alias</label>
@@ -89,7 +89,7 @@
             <Chips id="tagStark" v-model="ped.tagStark" rows="3" cols="20" separator="!"/>
         </div>
         <div>
-          <Button label="Annuler" icon="pi pi-times"  severity="danger" text @click="newDialog = false" />
+          <Button label="Annuler" icon="pi pi-times"  severity="danger" text @click="cancelAddTemp()" />
           <Button label="Continuer" icon="pi pi-check" type='submit' text @click="addPedTemp()" />
         </div>  
 		</div>
@@ -131,8 +131,8 @@
       :modal="true">
       <div class="confirmation-content">
         <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-        <span v-if="ped"
-          >  Êtes-vous certain(e) de vouloir sauvegarder toutes les modifications effectuées ?</span>
+        <span v-if="ped" id="saving"
+          >  Êtes-vous certain(e) de vouloir sauvegarder toutes les modifications effectuées dans le pedigree ?</span>
       </div>
       <template #footer>
         <Button
@@ -149,12 +149,17 @@
         />
       </template>
     </Dialog>
+
+
+
+    
   </template>
   
   <script>
   import axios from 'axios';
   import Alert from './Alert.vue'
   import { ref } from 'vue';
+  import {isEqual} from 'lodash';
 
 
 
@@ -165,11 +170,13 @@ export default {
     return {
       peds: ref(),
       ped: ref({}),
-      creation: ref(false),
-      originalPed : ref(),
+      originalTable: ref(false),
+      originalPed : ref({}),
+      unsavedChanges : ref(false),
       newDialog : ref(false),
       deletePedsDialog: ref(false),
       confirmSaveDialog: ref(false),
+      idDuplicate: ref(false),
       visible : ref(false),
       selectedPeds : ref(),
       selectedBase: ref(),
@@ -178,22 +185,31 @@ export default {
       submitted : ref(false),
       sexes : ["M", "F", "Unknown"],
       phenotypes : ["Affected", "Unaffected", "Missing"],
+      
     };
   },
   methods: {
-    getOriginal() {
-      this.originalPed = JSON.parse(JSON.stringify(this.peds));
-    },
     getPeds() {
       const path = 'http://int0663.hus-integration.fr:4280/ped';
       axios.get(path)
         .then((res) => {
           this.peds = res.data;
           console.log(this.peds);
+          if (this.originalTable==true){
+            this.getOriginal();
+            this.originalTable=false;
+      }
         })
         .catch((error) => {
           console.error(error);
         });
+
+    },
+    getOriginal() {
+      //console.log('origin debut');
+      this.originalPed = JSON.parse(JSON.stringify(this.peds));
+      console.log(this.originalPed);
+      console.log('origin fin');
     },
     savePedsDef() {
         const path = 'http://int0663.hus-integration.fr:4280/ped';
@@ -203,6 +219,7 @@ export default {
         console.log(this.payload);
         axios.post(path, this.payload)
           .then(() => {
+            originalTable==true;
             this.getPeds();
             console.log('Ajouté !');
             this.confirmSaveDialog=false;
@@ -212,20 +229,33 @@ export default {
             this.confirmSaveDialog=false;
           });
       },
+      cancelAddTemp() {
+        this.newDialog = false;
+        this.ped={};
+        this.submitted = false;
+      },
     addPedTemp() {
       this.submitted=true;
-      // console.log(this.ped.id)
-      // console.log(this.peds.value.id)
-      if (this.ped.id){
-        console.log(this.peds);
-        console.log("hello");
+      console.log("ped id",this.ped.id);
+      //console.log("peds id",this.peds.value.id);
+      const listeID = [];
+      for (var i of this.peds){
+        listeID.push(i.id)
+      }
+      this.idDuplicate=listeID.includes(this.ped.id);
+        
+      if (this.ped.id && this.idDuplicate == false){
         console.log(this.ped);
-        console.log("iamhere");
+        console.log("ped à rajouter");
         this.peds.push(JSON.parse(JSON.stringify(this.ped))); //copie dans peds (deep copy)
         this.newDialog=false;
         this.ped={};
+        console.log("peds apres rajout");
         console.log(this.peds);
-        }
+        this.tablesChanged();
+        this.submitted=false;
+      }
+        
       
       
       
@@ -236,18 +266,49 @@ export default {
       );
       this.deletePedsDialog = false;
       this.selectedPeds = null;
+      console.log('delete')
       console.log(this.peds);
-
+      this.tablesChanged();
 
     },
     exportCSV() {
-  this.dt.value.exportCSV();
-}
+  //this.dt.value.exportCSV();
+},
+tablesChanged() {
+  if (isEqual(this.peds, this.originalPed) ==false){
+    this.unsavedChanges = true;
+  } else {
+    this.unsavedChanges = false;
+  }
+},
     },
     
   created() {
+    this.originalTable = true;
     this.getPeds();
+    this.unsavedChanges = false;
+    console.log(this.unsavedChanges)
   },
+  beforeRouteLeave (to, from , next) {
+  
+  if (this.unsavedChanges == false) {
+    next(false)
+  } else {
+    const answer = window.confirm('Do you really want to leave? you have unsaved changes!');
+    next()
+  }
+  window.onbeforeunload() 
+  this.unsavedChanges ? true : null;
+},
+// beforeRouteUpdate (to, from , next) {
+//   const answer = window.confirm('Do you really want to leave? you have unsaved changes!')
+//   if (answer) {
+//     next(false)
+//   } else {
+//     next(false)
+//   }
+// },
+
 };
 
 

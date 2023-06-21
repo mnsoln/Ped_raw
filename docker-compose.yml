@@ -3,9 +3,11 @@ version: '3.8'
 services:
     backend:
         build: ./Back
+        env_file:
+            - .env
         volumes:
-            - /home1/data/WORK_DIR_SOLENE/Ped_raw/Back:/Back:rw
-            - /home1/data/WORK_DIR_SOLENE/Ped_raw/Data:/Data:rw
+            - ${BACKPATH}:/Back:rw
+            - ${DATAPATH}:/Data:rw
         ports: 
             - 4280:4280
         networks:
@@ -14,9 +16,9 @@ services:
     frontend:
         build: ./Front
         volumes:
-            - /home1/data/WORK_DIR_SOLENE/Ped_raw/Front:/Front:rw
+            - ${FRONTPATH}:/Front:rw
         ports: 
-            - 4271:5173
+            - ${EXTPORT}:5173
         networks:
             - solene_network
 
@@ -26,4 +28,4 @@ networks:
         ipam:
             driver: default
             config:
-                - subnet: 172.42.2.0/24
+                - subnet: ${SUBNET}
