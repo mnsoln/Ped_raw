@@ -93,28 +93,6 @@ def ping_pong():
     return jsonify(res)
 
 
-# @app.route('/ped', methods=['GET', 'POST'])
-# def all_ped():
-#     response_object = {'status': 'success'}
-#     if request.method == 'POST':
-#         post_data = request.get_json()
-#         PEDS.append({
-#             'id': uuid.uuid4().hex,
-#             'individu': post_data.get('individu'),
-#             'alias': post_data.get('alias'),
-#             'pere': post_data.get('pere'),
-#             'mere': post_data.get('mere'),
-#             'sexe': post_data.get('sexe'),
-#             'phenotype': post_data.get('phenotype'),
-#             'listeHPO': post_data.get('listeHPO'),
-#             'tagStark': post_data.get('tagStark'),
-#         })
-#         response_object['message'] = 'Book added!'
-#     else:
-#         response_object['books'] = BOOKS
-#     return jsonify(response_object)
-
-
 
 @app.route('/', methods=['GET', 'POST'])
 def all_books():

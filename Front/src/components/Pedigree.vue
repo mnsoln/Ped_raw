@@ -4,53 +4,115 @@
         <div class="card">
             <Toolbar class="mb-4">
                 <template #start>
-                    <Button label="Add" icon="pi pi-plus" severity="success"  size="small" @click="newDialog= true" />
+                    <Button label="Add" icon="pi pi-plus" severity="success"   @click="pedDialog= true" />
+                    <span v-tooltip.bottom="{value: `<h6> Select rows and use this button to delete them. Don't forget to save your changes. </h6>`, escape:true,class: 'custom-error'}">
                     <Button label="Delete" 
-                    icon="pi pi-trash" severity="danger" size="small" 
+                    icon="pi pi-trash" severity="danger"  
                     @click="deletePedsDialog = true"
                     :disabled="!selectedPeds || !selectedPeds.length"
-                    />
+                    /></span>
                 </template>
                 <template #center>
-                    <Button label="Save your changes" icon="pi pi-check" severity="success" class="mr-2" 
+                  <span v-tooltip.bottom="{value: `<h6> Use this button when you have made changes to save them. </h6>`, escape:true,class: 'custom-error'}">
+                    <Button label="Save your changes" icon="pi pi-check" severity="success" class="mr-2" size="large"
                     :disabled="!unsavedChanges"
                     @click="confirmSaveDialog=true"/>
+                  </span>
                 </template>
                 <template #end>
-                    <FileUpload mode="basic" size="small" accept="image/*"  :maxFileSize="1000000" label="Import" chooseLabel="Import" class="mr-2 inline-block" />
-                    <Button label="Download" icon="pi pi-upload" size="small" @click="exportCSV($event)" severity="help"/>
+                  <FileUpload
+                      mode="basic"
+                      accept="image/*"
+                      :maxFileSize="1000000"
+                      label="Import"
+                      chooseLabel="Import"
+                      class="mr-2 inline-block"
+                    />
+                    <Button label="Download" icon="pi pi-upload" @click="exportCSV($event)" severity="help"/>
                 </template>
             </Toolbar>
-            
-            <div>     
-                  <Dropdown v-model="selectedBase" :options="bases" editable placeholder="Select a Pedigree Database" class="p-invalid w-full md:w-14rem" />
-            </div>
+            <Card>
+              <template #content> 
+                  <Dropdown  v-model="selectedBase" :options="bases" editable placeholder="Select a Pedigree Database" class="p-invalid w-full md:w-14rem" style="min-width:35rem"/>
+                  &zwnj; &zwnj; &zwnj; &zwnj; &zwnj;
+                  <Button label="Create new database"
+                   icon="pi pi-plus" severity="success"  size="small" @click="baseDialog= true"  />
+                    
+              </template>
+            </Card>
+            <DataTable ref="dt" :value="peds" 
+            v-model:editingRows="editingRows"
+            v-model:selection="selectedPeds" dataKey="id"
+              editMode="row"
+              @row-edit-save="onRowEditSave" 
+              tableClass="editable-cells-table" 
+              :paginator="true" :rows="10"
+              paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLinkLastPageLink CurrentPageReport RowsPerPageDropdown" :rowsPerPageOptions="[5,10,25]"
+              currentPageReportTemplate="Showing {first} to {last} of {totalRecords} peds">
+              <Column selectionMode="multiple" style="width: 2rem" :exportable="false"></Column>
+              <Column field="id" header="Individual" sortable 
+              style="min-width:7rem">
+              <template #editor="{ data, field }">
+                <InputText v-model="data[field]" 
+                required="true" 
+                style="width: 9rem;"
 
-            <DataTable ref="dt" :value="peds" v-model:selection="selectedPeds" dataKey="id" 
-                :paginator="true" :rows="10"
-                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown" :rowsPerPageOptions="[5,10,25]"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} peds">
-
-                <Column selectionMode="multiple" style="width: 2rem" :exportable="false"></Column>
-                <Column field="id" header="Individual" sortable style="min-width:7rem">
-                </Column>
-                <Column field="alias" header="Aliases" sortable style="min-width:10rem"></Column>
-                <Column field="pere" header="Father" sortable>
-                </Column>
-                <Column field="mere" header="Mother" sortable style="min-width:8rem">
-                </Column>
-                <Column field="sexe" header="Sex" sortable style="min-width:4rem"></Column>
-                <Column field="phenotype" header="Phenotype" sortable style="min-width:12rem">
-                </Column>
-                <Column field="listeHPO" header="HPO List" sortable style="min-width:12rem">
-                </Column>
-                <Column field="tagStark" header="Stark Tags" sortable style="min-width:12rem">
-                </Column>
+                />
+              </template>
+              </Column>
+              <Column field="alias" header="Aliases" sortable style="min-width:7rem">
+                <template #editor="{ data, field }">
+                  <InputText v-model="data[field]" style="width: 6rem;" />
+              </template>
+              </Column>
+              <Column field="father" header="Father" sortable>
+                <template #editor="{ data, field }">
+                  <InputText v-model="data[field]" style="width: 6rem;"/>
+              </template>
+              </Column>
+              <Column field="mother" header="Mother" sortable style="min-width:8rem">
+                <template #editor="{ data, field }">
+                  <InputText v-model="data[field]" style="width: 6rem;"/>
+              </template>
+              </Column>
+              <Column field="sex" header="Sex" sortable style="min-width:4rem">
+                <template #editor="{ data, field }">
+                  <Dropdown v-model="data[field]" :options="sexes" style="width:6rem;" required="true" />
+              </template></Column>
+              <Column field="phenotype" header="Phenotype" style="min-width:9rem" sortable>
+                <template #editor="{ data, field }">
+                  <Dropdown v-model="data[field]" :options="phenotypes" style="width: max-content;" required="true"/>
+              </template>
+              </Column>
+              <Column field="HPOList" header="HPO List" sortable style="min-width:11rem">
+                <template #editor="{ data, field }">
+                  <!-- <InputText v-model="data[field]" /> -->
+                  <Chips id="HPOList" v-model="data[field]" rows="3" cols="20" separator="," style="width: 6rem;"/>
+              </template>
+              </Column>
+              <Column field="starkTags" header="Stark Tags" sortable style="min-width:11rem">
+                <template #editor="{ data, field }">
+                  <Chips id="starkTags" v-model="data[field]" rows="3" cols="20" separator="!" style="width: 6rem;"/>
+              </template>
+              </Column>
+              <!-- <Column :rowEditor="true" header="Edit row" :exportable="false" style="min-width: 9rem" >
+                <template #body>
+                  <Button
+                    icon="pi pi-pencil"
+                    outlined
+                    rounded
+                    class="mr-2"
+                    @click="editPed(ped)"
+                  />
+          
+                </template>
+              </Column> -->
+              <Column :rowEditor="true" style="width: 10%; min-width: 8rem" bodyStyle="text-align:center"></Column>
             </DataTable>
         </div>
     </div>
     
-    <Dialog v-model:visible="newDialog" :style="{width: '450px'}" header="Formulaire d'ajout de fichier Pedigree" :modal="true" class="p-fluid">
+    <Dialog v-model:visible="pedDialog" :style="{width: '450px'}" header="Pedigree file form" :modal="true" class="p-fluid">
       
         <div class="field">
             <label for="id">Individual</label>
@@ -65,16 +127,17 @@
             <InputText id="alias" v-model="ped.alias" rows="3" cols="20" />
         </div>
         <div class="field">
-            <label for="pere">Father</label>
-            <InputText id="pere" v-model="ped.pere" rows="3" cols="20" />
+            <label for="father">Father</label>
+            <InputText id="father" v-model="ped.father" rows="3" cols="20" />
         </div>
         <div class="field">
-            <label for="mere">Mother</label>
-            <InputText id="mere" v-model="ped.mere" rows="3" cols="20" />
+            <label for="mother">Mother</label>
+            <InputText id="mother" v-model="ped.mother" rows="3" cols="20" />
         </div>
         <div class="field">
-            <label for="sexe">Sex</label> 
-            <SelectButton v-model="ped.sexe" :options="sexes" aria-labelledby="basic" rows="3" cols="20" required="true" />
+            <label for="sex">Sex</label> 
+            <SelectButton v-model="ped.sex" :options="sexes" aria-labelledby="basic" rows="3" cols="20" required="true" 
+             />
             
         </div>
         <div class="field">
@@ -82,11 +145,11 @@
             <SelectButton v-model="ped.phenotype" :options="phenotypes" aria-labelledby="basic" rows="3" cols="20" required="true"/>
         </div>
         <div class="field">
-            <label for="listeHPO">HPO List</label>
-            <Chips id="listeHPO" v-model="ped.listeHPO" rows="3" cols="20" separator=","/>
+            <label for="HPOList">HPO List</label>
+            <Chips id="HPOList" v-model="ped.HPOList" rows="3" cols="20" separator=","/>
         <div class="field">
-            <label for="tagStark">Stark Tags</label>
-            <Chips id="tagStark" v-model="ped.tagStark" rows="3" cols="20" separator="!"/>
+            <label for="starkTags">Stark Tags</label>
+            <Chips id="starkTags" v-model="ped.starkTags" rows="3" cols="20" separator="!"/>
         </div>
         <div>
           <Button label="Annuler" icon="pi pi-times"  severity="danger" text @click="cancelAddTemp()" />
@@ -103,10 +166,9 @@
       <div class="confirmation-content">
         <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
         <span v-if="ped"
-          >  Êtes-vous certain(e) de vouloir supprimer le(s) fichier(s) sélectionné(s) ?</span
-        >
+          >  Are you sure you want to delete the selected file(s)?</span>
         <br><br>
-        <small> Les modifications ne seront pas sauvegardées tant que vous n'appuyez pas sur le bouton "Sauvegarder les modifications".</small>
+        <small> Your changes will not be saved until you press the "Save your changes" button.</small>
       </div>
       <template #footer>
         <Button
@@ -132,17 +194,17 @@
       <div class="confirmation-content">
         <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
         <span v-if="ped" id="saving"
-          >  Êtes-vous certain(e) de vouloir sauvegarder toutes les modifications effectuées dans le pedigree ?</span>
+          >  Are you sure you want to save all pedigree modifications ?</span>
       </div>
       <template #footer>
         <Button
-          label="Non"
+          label="No"
           icon="pi pi-times"
           text
           @click="confirmSaveDialog = false"
         />
         <Button
-          label="Oui"
+          label="Yes"
           icon="pi pi-check"
           text
           @click="savePedsDef()"
@@ -150,6 +212,52 @@
       </template>
     </Dialog>
 
+    <Dialog
+      v-model:visible="duplicateDialog"
+      :style="{ width: '450px' }"
+      header="Error"
+      :modal="true">
+      <div class="confirmation-content">
+        <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
+        <span v-if="ped" id="saving"
+          >  The ID is already used. Every row needs to have a unique ID, please try again. </span>
+      </div>
+      <template #footer>
+        <Button
+          label="Ok"
+          icon="pi pi-times"
+          text
+          @click="duplicateDialog = false"
+        />
+      </template>
+    </Dialog>
+
+
+    <Dialog v-model:visible="baseDialog" :style="{width: '450px'}" header="New database form" :modal="true" class="p-fluid">
+      
+      <div class="field">
+          <label for="name">Database Name</label>
+          <InputText id="name" v-model.trim="ped.id" 
+            required="true" 
+            autofocus 
+            :class="{'p-invalid': submitted && !ped.id | submitted && this.idDuplicate == true }" />
+          <small class="p-error" v-if="submitted && !ped.id | submitted && this.idDuplicate == true">A unique ID is required.</small>
+      </div>
+      <template #footer>
+        <Button
+          label="Cancel"
+          icon="pi pi-times"
+          text
+          @click="baseDialog = false"
+        />
+        <Button
+          label="Confirm"
+          icon="pi pi-check"
+          text
+          @click="deleteSelectedPeds"
+        />
+      </template>
+    </Dialog>
 
 
     
@@ -173,14 +281,18 @@ export default {
       originalTable: ref(false),
       originalPed : ref({}),
       unsavedChanges : ref(false),
-      newDialog : ref(false),
+      pedDialog : ref(false),
       deletePedsDialog: ref(false),
       confirmSaveDialog: ref(false),
+      duplicateDialog : ref(false),
+      baseDialog : ref(false),
       idDuplicate: ref(false),
       visible : ref(false),
+      editingRows: [],
       selectedPeds : ref(),
       selectedBase: ref(),
-      bases : ["1","2"],
+      bases : ref([]),
+      newData : ref(),
       dt:ref(),
       submitted : ref(false),
       sexes : ["M", "F", "Unknown"],
@@ -189,6 +301,24 @@ export default {
     };
   },
   methods: {
+    onRowEditSave( event){
+      this.submitted=true;
+      console.log("i am here");
+      console.log(this.ped);
+      console.log("event:");
+      console.log(event);
+      let { newData, index } = event;
+      console.log("newData:", newData)
+      this.getDuplicate(newData);
+      if (newData.id != this.peds[index].id && this.idDuplicate==false){
+        this.peds[index] = newData;
+        this.tablesChanged();
+      } else {
+        this.duplicateDialog = true;
+      }
+      
+
+    },
     getPeds() {
       const path = 'http://int0663.hus-integration.fr:4280/ped';
       axios.get(path)
@@ -219,7 +349,7 @@ export default {
         console.log(this.payload);
         axios.post(path, this.payload)
           .then(() => {
-            originalTable==true;
+            originalTable=true;
             this.getPeds();
             console.log('Ajouté !');
             this.confirmSaveDialog=false;
@@ -230,33 +360,41 @@ export default {
           });
       },
       cancelAddTemp() {
-        this.newDialog = false;
+        this.pedDialog = false;
         this.ped={};
         this.submitted = false;
+      },
+      getDuplicate (ped) {
+        const listeID = [];
+      for (var i of this.peds){
+        listeID.push(i.id)
+      }
+      this.idDuplicate=listeID.includes(ped.id);
       },
     addPedTemp() {
       this.submitted=true;
       console.log("ped id",this.ped.id);
       //console.log("peds id",this.peds.value.id);
-      const listeID = [];
-      for (var i of this.peds){
-        listeID.push(i.id)
-      }
-      this.idDuplicate=listeID.includes(this.ped.id);
+      this.getDuplicate(this.ped)
         
       if (this.ped.id && this.idDuplicate == false){
         console.log(this.ped);
         console.log("ped à rajouter");
         this.peds.push(JSON.parse(JSON.stringify(this.ped))); //copie dans peds (deep copy)
-        this.newDialog=false;
+        this.pedDialog=false;
         this.ped={};
         console.log("peds apres rajout");
         console.log(this.peds);
         this.tablesChanged();
         this.submitted=false;
       }
-        
-      
+    },
+    editPed(ped2edit) {
+      this.pedDialog = true;
+      console.log('ligne',this.ped);
+      console.log('ligne',ped2edit);
+      console.log('ligne',this.selectedPeds);
+
       
       
     },
@@ -316,7 +454,12 @@ tablesChanged() {
 
 <style>
 html{
-font-size: 80% !important;
+font-size: 70% !important;
+}
+.custom-error{
+  color: blueviolet;
+  fill: aqua;
+
 }
 </style>
 
