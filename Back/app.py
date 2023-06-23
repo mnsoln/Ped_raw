@@ -1,9 +1,33 @@
 from flask import Flask, jsonify, request
-from flask_cors import CORS
-from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_cors import CORS, cross_origin
+#from werkzeug.middleware.proxy_fix import ProxyFix
 import json
 import uuid
+import glob
+import sys
+import logging as log
 
+
+def set_log_level(verbosity):
+    verbosity = verbosity.lower()
+    configs = {
+        "debug": log.DEBUG,
+        "info": log.INFO,
+        "warning": log.WARNING,
+        "error": log.ERROR,
+        "critical": log.CRITICAL,
+    }
+    if verbosity not in configs.keys():
+        raise ValueError(
+            f"Unknown verbosity level: {verbosity}\nPlease use any in: {configs.keys()}"
+        )
+    log.basicConfig(
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=configs[verbosity],
+    )
+
+set_log_level("debug")
 
 BOOKS = [
     {
@@ -54,27 +78,66 @@ app = Flask(__name__)
 # app.config.from_object(__name__)
 # app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
+# log.getLogger('flask_cors').level = log.DEBUG
 # enable CORS
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 
+
 ##PED
+
+def getFiles():
+    files=glob.glob('../Data/*.json')
+    return files
+
+CURRENT_FILE = getFiles()[0]
+
+
+@app.route('/files', methods=['GET', 'POST'])
+def all_files():
+
+    if request.method =='POST':
+        global CURRENT_FILE
+        CURRENT_FILE = request.get_json()["mybase"]
+        log.debug(f"request:{request.get_json()}")
+        log.debug(f"curr post files:{CURRENT_FILE}")
+        return {'status': 'success'}
+    
+    elif request.method =='GET':
+        paths=getFiles()
+        #files=[]
+        # for path in paths:
+        #     split=path.split('/')
+        #     files.append(split[len(split)-1][:-5])
+        return jsonify(paths)
+    
+
 
 @app.route('/ped', methods=['GET','POST'])
 def all_peds():
-    #global PEDS
+    global CURRENT_FILE
+    files=getFiles()
+    #print(files)
     if request.method =='POST':
         post_data = request.get_json()
-        print("post request made:", post_data)
-        with open("/Data/data.json",'w') as PEDS:
-            PEDS.write(json.dumps(post_data))
-    
+        log.debug(f"/ped POST: {post_data}")
+        with open(CURRENT_FILE,'w') as PEDS:
+            PEDS.write(json.dumps(post_data))    
+        # with open("/Data/data.json",'w') as PEDS:
+        #     PEDS.write(json.dumps(post_data))    
         # response_object['message'] = "Ajout de fichier ped terminé. N'oubliez pas de sauvegarder les modifications. "
         return {'status': 'success'}
-    else:
-        with open("/Data/data.json",'r') as PEDS:
+    
+    elif request.method =='GET':
+        log.debug(f"/ped GET: {CURRENT_FILE}")
+        #curr = json.loads(CURRENT_FILE)
+        with open(CURRENT_FILE,'r') as PEDS:
+            log.debug(f"/ped GET 2 curr: {CURRENT_FILE}")
             data = PEDS.read()
         return data
+    
+    else:
+        raise NotImplementedError('Only GET and POST requests implemented for /ped')
 
 
 
