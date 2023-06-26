@@ -98,7 +98,14 @@ def all_files():
 
     if request.method =='POST':
         global CURRENT_FILE
+        files=getFiles()
         CURRENT_FILE = request.get_json()["mybase"]
+        if CURRENT_FILE not in files:
+            CURRENT_FILE ="../Data/"+CURRENT_FILE
+            if CURRENT_FILE.endswith(".json") == False :
+                CURRENT_FILE = CURRENT_FILE + ".json"
+            with open(CURRENT_FILE,'w') as new:
+                new.write("[]")
         log.debug(f"request:{request.get_json()}")
         log.debug(f"curr post files:{CURRENT_FILE}")
         return {'status': 'success'}
@@ -130,16 +137,20 @@ def all_peds():
     
     elif request.method =='GET':
         log.debug(f"/ped GET: {CURRENT_FILE}")
-        #curr = json.loads(CURRENT_FILE)
         with open(CURRENT_FILE,'r') as PEDS:
             log.debug(f"/ped GET 2 curr: {CURRENT_FILE}")
             data = PEDS.read()
+            log.debug(f"/ped GET data1 : {data}")
         return data
     
     else:
         raise NotImplementedError('Only GET and POST requests implemented for /ped')
 
 
+# @app.route('/newfile', methods=['GET', 'POST'])
+# def new_file():
+#     if request.method =='POST':
+#         post_data = request.get_json()
 
 
 

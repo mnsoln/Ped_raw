@@ -22,7 +22,7 @@
         </template>
         <template #center>
           <span
-            v-tooltip.bottom="{value: `<h6> Use this button when you have made changes to save them. </h6>`, escape:true,class: 'custom-error'}"
+            v-tooltip.bottom="{value: `<h6> Use this button when you have made changes to save them into the database. </h6>`, escape:true,class: 'custom-error'}"
           >
             <Button
               label="Save your changes"
@@ -58,10 +58,10 @@
             v-model="selectedBase"
             :options="bases"
             editable
-            placeholder="Select a Pedigree Database"
+            placeholder="Search for or select an existing pedigree database"
             class="w-full md:w-14rem"
             style="min-width: 35rem"
-            @change="chooseBase()"
+            @change="selectBase()"
             
           />
           &zwnj; &zwnj; &zwnj; &zwnj; &zwnj;
@@ -70,7 +70,7 @@
             icon="pi pi-plus"
             severity="success"
             size="small"
-            @click="baseDialog= true"
+            @click="createDB()"
           />
         </template>
       </Card>
@@ -165,7 +165,6 @@
           <Chip v-for="hpo in data[field]"  severity="success"> {{ hpo }} </Chip>
         </template>
           <template #editor="{ data, field }">
-            <!-- <InputText v-model="data[field]" /> -->
             <Chips
               id="HPOList"
               v-model="data[field]"
@@ -196,18 +195,6 @@
             />
           </template>
         </Column>
-        <!-- <Column :rowEditor="true" header="Edit row" :exportable="false" style="min-width: 9rem" >
-                <template #body>
-                  <Button
-                    icon="pi pi-pencil"
-                    outlined
-                    rounded
-                    class="mr-2"
-                    @click="editPed(ped)"
-                  />
-          
-                </template>
-              </Column> -->
         <Column
           :rowEditor="true"
           style="width: 10%; min-width: 8rem"
@@ -320,10 +307,9 @@
     :modal="true"
   >
     <div class="confirmation-content">
-      <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-      <span v-if="ped">
-        Are you sure you want to delete the selected file(s)?</span
-      >
+      <InlineMessage severity="warn" v-if="ped" style="font-size: 10rem;">
+        Are you sure you want to delete the selected file(s)?
+      </InlineMessage>
       <br /><br />
       <small>
         Your changes will not be saved until you press the "Save your changes"
@@ -350,7 +336,7 @@
     <div class="confirmation-content">
       <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
       <span v-if="ped" id="saving">
-        Are you sure you want to save all pedigree modifications ?</span
+        Are you sure you want to save all pedigree modifications in the {{ selectedBase }} file ?</span
       >
     </div>
     <template #footer>
@@ -394,11 +380,11 @@
     :modal="true"
     class="p-fluid"
   >
+    <InlineMessage severity="warn">You will need to refresh the page to access your new database.</InlineMessage>
     <div class="field">
       <label for="name">Database Name</label>
       <InputText
-        id="name"
-        v-model.trim="ped.id"
+        v-model="selectedBase"
         required="true"
         autofocus
         :class="{'p-invalid': submitted && !ped.id | submitted && this.idDuplicate == true }"
@@ -406,7 +392,7 @@
       <small
         class="p-error"
         v-if="submitted && !ped.id | submitted && this.idDuplicate == true"
-        >A unique ID is required.</small
+        >A unique database name is required.</small
       >
     </div>
     <template #footer>
@@ -420,10 +406,41 @@
         label="Confirm"
         icon="pi pi-check"
         text
-        @click="deleteSelectedPeds"
+        @click="chooseBase()"
       />
     </template>
   </Dialog>
+
+  
+  <Dialog
+    v-model:visible="dialogUnsaved"
+    :style="{width: '450px'}"
+    header="New database form"
+    :modal="true"
+    class="p-fluid"
+  >
+    <InlineMessage severity="warn"> You are leaving your database with unsaved changes. Are you sure you want to cancel your changes ? </InlineMessage>
+
+    <Button
+        label="Go back"
+        icon="pi pi-times"
+        text
+        @click="dialogUnsaved = false"
+      />
+      <Button
+        label="Leave this base"
+        icon="pi pi-check"
+        text
+        @click="chooseBase()"
+      />
+
+  </Dialog>
+
+  <Toast position ="top-right" v-if="unsavedChanges == true" severity="warn"
+  summary="You have unsaved changes" />
+
+
+
 </template>
 
 <script>
@@ -449,20 +466,22 @@ export default {
       confirmSaveDialog: ref(false),
       duplicateDialog : ref(false),
       baseDialog : ref(false),
+      dialogUnsaved : ref(false),
+      confirmChange : ref(false),
       idDuplicate: ref(false),
       visible : ref(false),
+      unsavedChanges : ref(false),
       editingRows: [],
       selectedPeds : ref(),
       selectedBase: ref(),
       bases : ref([]),
       newData : ref(),
-      dt:ref(),
+      dt : ref(),
       submitted : ref(false),
       sexes : ["M", "F", "Unknown"],
       phenotypes : ["Affected", "Unaffected", "Missing"],
       filters : ref({ 'id': {value: null, matchMode: FilterMatchMode.CONTAINS}
       }),
-      colonnes : ["id","alias","father","mother","sex","phenotype","HPOList","starkTags"],
 
     };
   },
@@ -510,9 +529,24 @@ export default {
         console.log("getBases:", this.bases);
       });
     },
+    selectBase() {
+      console.log("selectbase");
+      if (this.unsavedChanges == true){
+        this.dialogUnsaved = true;
+        } else { 
+          this.chooseBase();
+        }
+
+    },
     chooseBase() {
       const path = 'http://int0663.hus-integration.fr:4280/files'
       console.log('choose')
+      this.unsavedChanges = false;
+      this.dialogUnsaved = false ;
+      this.selectedPeds = [];
+      
+
+
       axios.post(path, {"mybase": this.selectedBase})
       .then(() => {
         console.log("postBase:",this.selectedBase);
@@ -524,7 +558,17 @@ export default {
         console.log("finally:", this.selectedBase)
         this.getPeds();
     });
+    this.baseDialog = false;
 
+    },
+    confirmChangeBase() {
+      this.confirmChange = true;
+      chooseBase();
+    },
+    createDB(){
+      this.baseDialog= true;
+      this.selectedBase = null;
+      
     },
     getOriginal() {
       console.log("getoriginal:", this.peds)
@@ -607,7 +651,17 @@ export default {
 
     },
     exportCSV() {
-      this.peds.exportCSV();
+      // console.log("this.dt", this.dt);
+      // console.log("dt", dt);
+      // console.log("dt.value", dt.value);
+      // console.log("this.dt.value", this.dt.value);
+      console.log("this.peds", this.peds);
+      // console.log("ped", ped);
+      // console.log("ped.value", ped.value);
+      // console.log("this.peds.value", this.peds.value);
+      // this.dt.value.exportCSV();
+      // this.peds.exportCSV();
+      // this.exportCSV({}, this.peds);
     },
     tablesChanged() {
       if (isEqual(this.peds, this.originalPed) ==false){
@@ -649,7 +703,7 @@ export default {
 
 <style>
 html {
-  font-size: 70% !important;
+  font-size: 70% ;
 }
 
 </style>
