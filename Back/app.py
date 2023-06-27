@@ -90,6 +90,20 @@ def getFiles():
     files=glob.glob('../Data/*.json')
     return files
 
+
+def getNameFile(files, mode): 
+    if mode == "split":
+        file_list=[]
+        for file in files:
+            split = file.split('/')
+            file_list.append(split[len(split)-1][:-5])
+        return file_list
+    elif mode == "get" :
+        file = ("../Data/" + files + ".json")
+        return file
+    
+
+
 CURRENT_FILE = getFiles()[0]
 
 
@@ -99,23 +113,23 @@ def all_files():
     if request.method =='POST':
         global CURRENT_FILE
         files=getFiles()
-        CURRENT_FILE = request.get_json()["mybase"]
-        if CURRENT_FILE not in files:
-            CURRENT_FILE ="../Data/"+CURRENT_FILE
+        selected_base = request.get_json()["mybase"]
+        CURRENT_FILE = getNameFile(selected_base, "get")
+
+        if CURRENT_FILE not in files: #create new file
+            CURRENT_FILE ="../Data/" + CURRENT_FILE
             if CURRENT_FILE.endswith(".json") == False :
                 CURRENT_FILE = CURRENT_FILE + ".json"
             with open(CURRENT_FILE,'w') as new:
                 new.write("[]")
+
         log.debug(f"request:{request.get_json()}")
         log.debug(f"curr post files:{CURRENT_FILE}")
         return {'status': 'success'}
     
     elif request.method =='GET':
-        paths=getFiles()
-        #files=[]
-        # for path in paths:
-        #     split=path.split('/')
-        #     files.append(split[len(split)-1][:-5])
+        files = getFiles()
+        paths = getNameFile(files, "split")
         return jsonify(paths)
     
 
@@ -130,9 +144,6 @@ def all_peds():
         log.debug(f"/ped POST: {post_data}")
         with open(CURRENT_FILE,'w') as PEDS:
             PEDS.write(json.dumps(post_data))    
-        # with open("/Data/data.json",'w') as PEDS:
-        #     PEDS.write(json.dumps(post_data))    
-        # response_object['message'] = "Ajout de fichier ped terminé. N'oubliez pas de sauvegarder les modifications. "
         return {'status': 'success'}
     
     elif request.method =='GET':
@@ -146,11 +157,7 @@ def all_peds():
     else:
         raise NotImplementedError('Only GET and POST requests implemented for /ped')
 
-
-# @app.route('/newfile', methods=['GET', 'POST'])
-# def new_file():
-#     if request.method =='POST':
-#         post_data = request.get_json()
+@app.route('/upload', methods=['GET','POST'])
 
 
 
