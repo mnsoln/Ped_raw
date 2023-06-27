@@ -9,6 +9,12 @@ import 'primeicons/primeicons.css';
 //import "primeflex/primeflex.css";
 import "primevue/resources/themes/lara-light-blue/theme.css";
 import "primevue/resources/primevue.min.css";
+import JsonCSV from 'vue-json-csv'
+
+
+
+
+
 // import "./index.css";
 // import "./flags.css";
 import Button from 'primevue/button';
@@ -114,6 +120,8 @@ import VirtualScroller from 'primevue/virtualscroller';
 
 const app = createApp(App)
 app.use(router)
+
+app.component('downloadCsv', JsonCSV)
 
 //app.component('EasyDataTable', Vue3EasyDataTable);
 app.use(PrimeVue, { ripple: true });

@@ -1,16 +1,23 @@
 <template>
+  <head>
+
+  <a class="blog-header-logo text-dark" href="#">Large</a></head>
   <div>
     <div class="card">
       <Toolbar class="mb-4">
         <template #start>
+          <span
+              v-tooltip.right="{value: `<h6> Use this button when you have selected a database if you want to add a row. Don't forget to save your changes. </h6>`, escape:true,class:'custom-error'}"
+            >
           <Button
             label="Add"
             icon="pi pi-plus"
             severity="success"
             @click="pedDialog= true"
-          />
+            :disabled="!isBaseSelected"
+          /> </span>
           <span
-            v-tooltip.bottom="{value: `<h6> Select rows and use this button to delete them. Don't forget to save your changes. </h6>`, escape:true,class: 'custom-error'}"
+            v-tooltip.bottom="{value: `<h6> Select rows and use this button to delete them. Don't forget to save your changes. </h6>`, escape:true,class:'custom-error'}"
           >
             <Button
               label="Delete"
@@ -18,11 +25,12 @@
               severity="danger"
               @click="deletePedsDialog = true"
               :disabled="!selectedPeds || !selectedPeds.length"
+              
           /></span>
         </template>
         <template #center>
           <span
-            v-tooltip.bottom="{value: `<h6> Use this button when you have made changes to save them into the database. </h6>`, escape:true,class: 'custom-error'}"
+            v-tooltip.bottom="{value: `<h6> Use this button when you have made changes to a database to save them. </h6>`, escape:true,class: 'custom-error'}"
           >
             <Button
               label="Save your changes"
@@ -36,20 +44,36 @@
           </span>
         </template>
         <template #end>
+          <span
+            v-tooltip.bottom="{value: `<h6> Use this button when you have selected a database to import data into it. </h6>`, escape:true,class: 'custom-error'}"
+          >
           <FileUpload
             mode="basic"
-            accept="image/*"
+            accept=".csv, .tsv, .json*"
             :maxFileSize="1000000"
             label="Import"
             chooseLabel="Import"
             class="mr-2 inline-block"
+            :disabled="!isBaseSelected"
+            :auto="true"
+            url="http://int0663.hus-integration.fr:4280/upload"
+            @upload="onUpload"
+
           />
+          </span>
+          <span
+            v-tooltip.left="{value: `<h6> Use this button when you have selected a database to download its data. </h6>`, escape:true,class: 'custom-error'}"
+          >
+          <download-csv
+            :data= "peds">
           <Button
             label="Download"
             icon="pi pi-upload"
-            @click="exportCSV($event)"
+            :disabled="!peds"
             severity="help"
           />
+        </download-csv>
+        </span>
         </template>
       </Toolbar>
       <Card>
@@ -87,6 +111,7 @@
         tableClass="editable-cells-table"
         :paginator="true"
         :rows="10"
+        showGridlines
         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLinkLastPageLink CurrentPageReport RowsPerPageDropdown"
         :rowsPerPageOptions="[5,10,25]"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} peds"
@@ -425,7 +450,7 @@
         label="Go back"
         icon="pi pi-times"
         text
-        @click="dialogUnsaved = false"
+        @click="cancelChoose()"
       />
       <Button
         label="Leave this base"
@@ -436,7 +461,8 @@
 
   </Dialog>
 
-  <Toast position ="top-right" v-if="unsavedChanges == true" severity="warn"
+  <Toast position ="top-right" 
+  v-model:visible="unsavedChanges" severity="warn"
   summary="You have unsaved changes" />
 
 
@@ -456,8 +482,8 @@
 export default {
   data() {
     return {
-      peds: ref(),
-      ped: ref({'id': "", 'alias': "", "father":"", "mother":"", "sex":"Unknown", "phenotype":"Missing","HPOList":[], "starkTags":[] }),
+      peds : ref(),
+      ped : ref({'id': "", 'alias': "", "father":"", "mother":"", "sex":"Unknown", "phenotype":"Missing","HPOList":[], "starkTags":[] }),
       originalTable: ref(false),
       originalPed : ref({}),
       unsavedChanges : ref(false),
@@ -470,6 +496,7 @@ export default {
       confirmChange : ref(false),
       idDuplicate: ref(false),
       visible : ref(false),
+      isBaseSelected : ref(false),
       unsavedChanges : ref(false),
       editingRows: [],
       selectedPeds : ref(),
@@ -539,14 +566,13 @@ export default {
 
     },
     chooseBase() {
-      const path = 'http://int0663.hus-integration.fr:4280/files'
       console.log('choose')
       this.unsavedChanges = false;
       this.dialogUnsaved = false ;
       this.selectedPeds = [];
+      this.isBaseSelected = true ;
       
-
-
+      const path = 'http://int0663.hus-integration.fr:4280/files'
       axios.post(path, {"mybase": this.selectedBase})
       .then(() => {
         console.log("postBase:",this.selectedBase);
@@ -559,11 +585,16 @@ export default {
         this.getPeds();
     });
     this.baseDialog = false;
-
     },
+
     confirmChangeBase() {
       this.confirmChange = true;
       chooseBase();
+    },
+    cancelChoose(){
+      this.dialogUnsaved = false;
+      this.selectedBase = "";
+
     },
     createDB(){
       this.baseDialog= true;
@@ -604,7 +635,7 @@ export default {
     },
     cancelAddTemp() {
       this.pedDialog = false;
-      this.ped={};
+      this.ped = {'id': "", 'alias': "", "father":"", "mother":"", "sex":"Unknown", "phenotype":"Missing","HPOList":[], "starkTags":[] };
       this.submitted = false;
     },
     getDuplicate (ped) {
@@ -625,7 +656,7 @@ export default {
         console.log("ped à rajouter");
         this.peds.push(JSON.parse(JSON.stringify(this.ped))); //copie dans peds (deep copy)
         this.pedDialog=false;
-        this.ped={};
+        this.ped = {'id': "", 'alias': "", "father":"", "mother":"", "sex":"Unknown", "phenotype":"Missing","HPOList":[], "starkTags":[] };
         console.log("peds apres rajout");
         console.log(this.peds);
         this.tablesChanged();
@@ -651,23 +682,29 @@ export default {
 
     },
     exportCSV() {
-      // console.log("this.dt", this.dt);
-      // console.log("dt", dt);
-      // console.log("dt.value", dt.value);
-      // console.log("this.dt.value", this.dt.value);
-      console.log("this.peds", this.peds);
-      // console.log("ped", ped);
-      // console.log("ped.value", ped.value);
-      // console.log("this.peds.value", this.peds.value);
-      // this.dt.value.exportCSV();
-      // this.peds.exportCSV();
-      // this.exportCSV({}, this.peds);
+      console.log("export this peds", this.peds);
     },
     tablesChanged() {
       if (isEqual(this.peds, this.originalPed) ==false){
         this.unsavedChanges = true;
       } else {
         this.unsavedChanges = false;
+      }
+    },
+    async onUpload(event) {
+      fileUp= event.files[0];
+      const imgUpload = await fetch("http://int0663.hus-integration.fr:4280/upload", {
+        method: "POST",
+        body: files,
+      });
+      if (imgUpload) {
+        console.log(imgUpload);
+        toast.add({
+          severity: "info",
+          summary: "Success",
+          detail: "File Uploaded",
+          life: 10000,
+        });
       }
     },
     
