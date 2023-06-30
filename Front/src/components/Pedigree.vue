@@ -4,7 +4,7 @@
   <a class="blog-header-logo text-dark" href="#">Large</a></head>
   <div>
     <div class="card">
-      <Toolbar class="mb-4">
+      <Toolbar class="mb-4" >
         <template #start>
           <span
               v-tooltip.right="{value: `<h6> Use this button when you have selected a database if you want to add a row. Don't forget to save your changes. </h6>`, escape:true,class:'custom-error'}"
@@ -49,7 +49,8 @@
           >
           <FileUpload
             mode="basic"
-            accept=".csv, .tsv, .json*"
+            name="myfile[]" 
+            accept=".csv, .tsv,.json"
             :maxFileSize="1000000"
             label="Import"
             chooseLabel="Import"
@@ -57,7 +58,7 @@
             :disabled="!isBaseSelected"
             :auto="true"
             url="http://int0663.hus-integration.fr:4280/upload"
-            @upload="onUpload"
+            customUpload @uploader="onUpload"
 
           />
           </span>
@@ -76,19 +77,18 @@
         </span>
         </template>
       </Toolbar>
-      <Card>
-        <template #content>
+      <nav class="nav d-flex justify-content-center">
+        
           <Dropdown
             v-model="selectedBase"
             :options="bases"
             editable
             placeholder="Search for or select an existing pedigree database"
             class="w-full md:w-14rem"
-            style="min-width: 35rem"
+            style="min-width: 35rem; margin-right: 2rem;"
             @change="selectBase()"
             
           />
-          &zwnj; &zwnj; &zwnj; &zwnj; &zwnj;
           <Button
             label="Create new database"
             icon="pi pi-plus"
@@ -96,8 +96,9 @@
             size="small"
             @click="createDB()"
           />
-        </template>
-      </Card>
+        
+      </nav>
+      <br>
       <DataTable
         ref="dt"
         :value="peds"
@@ -112,17 +113,19 @@
         :paginator="true"
         :rows="10"
         showGridlines
+        
         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLinkLastPageLink CurrentPageReport RowsPerPageDropdown"
         :rowsPerPageOptions="[5,10,25]"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} peds"
+        
       >
         <Column
           selectionMode="multiple"
           style="width: 2rem"
           :exportable="false"
         ></Column>
-        <Column field="id" header="Patient ID" sortable style="min-width: 7rem">
-          <template #filter="{ filterModel, filterCallback }">
+        <Column field="id" header="Patient ID" sortable style="min-width: 9rem;">
+          <template #filter="{ filterModel, filterCallback }" >
             <InputText
               v-model="filterModel.value"
               v-tooltip.top.focus="'Hit any key to filter'"
@@ -130,14 +133,14 @@
               @keydown="filterCallback()"
               class="p-column-filter"
               placeholder="Search for an ID"
-              style="width: 10rem;"
+              style="width: 9rem;"
             />
           </template>
           <template #editor="{ data, field }">
             <InputText
               v-model="data[field]"
               required="true"
-              style="width: 9rem"
+              style="min-width: 8rem; max-width: 10rem;"
             />
           </template>
         </Column>
@@ -146,12 +149,12 @@
             <InputText v-model="data[field]" style="width: 6rem" />
           </template>
         </Column>
-        <Column field="father" header="Father" sortable>
+        <Column field="father" header="Father" sortable style="min-width: 7rem">
           <template #editor="{ data, field }">
             <InputText v-model="data[field]" style="width: 6rem" />
           </template>
         </Column>
-        <Column field="mother" header="Mother" sortable style="min-width: 8rem">
+        <Column field="mother" header="Mother" sortable style="min-width: 7rem">
           <template #editor="{ data, field }">
             <InputText v-model="data[field]" style="width: 6rem" />
           </template>
@@ -168,7 +171,7 @@
         <Column
           field="phenotype"
           header="Phenotype"
-          style="min-width: 9rem"
+          style="min-width: 7rem"
           sortable
         >
           <template #editor="{ data, field }">
@@ -221,8 +224,9 @@
           </template>
         </Column>
         <Column
+          :exportable="false"
           :rowEditor="true"
-          style="width: 10%; min-width: 8rem"
+          style="min-width: 5rem; max-width: 6rem"
           bodyStyle="text-align:center"
         ></Column>
       </DataTable>
@@ -231,7 +235,7 @@
 
   <Dialog
     v-model:visible="pedDialog"
-    :style="{width: '450px'}"
+    :style="{width: '50rem'}"
     header="Pedigree file form"
     :modal="true"
     class="p-fluid"
@@ -327,7 +331,7 @@
 
   <Dialog
     v-model:visible="deletePedsDialog"
-    :style="{ width: '450px' }"
+    :style="{ width: '50rem' }"
     header="Confirmation"
     :modal="true"
   >
@@ -354,15 +358,15 @@
 
   <Dialog
     v-model:visible="confirmSaveDialog"
-    :style="{ width: '450px' }"
+    :style="{ width: '50rem' }"
     header="Confirmation"
     :modal="true"
   >
     <div class="confirmation-content">
-      <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-      <span v-if="ped" id="saving">
-        Are you sure you want to save all pedigree modifications in the {{ selectedBase }} file ?</span
-      >
+      <p id="saving">
+        <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
+        Are you sure you want to save all pedigree modifications in the <span style="color:red"> {{ manualSelectedBase }} </span> file ?
+      </p>
     </div>
     <template #footer>
       <Button
@@ -377,7 +381,7 @@
 
   <Dialog
     v-model:visible="duplicateDialog"
-    :style="{ width: '450px' }"
+    :style="{ width: '50rem' }"
     header="Error"
     :modal="true"
   >
@@ -400,7 +404,7 @@
 
   <Dialog
     v-model:visible="baseDialog"
-    :style="{width: '450px'}"
+    :style="{width: '50rem'}"
     header="New database form"
     :modal="true"
     class="p-fluid"
@@ -439,8 +443,8 @@
   
   <Dialog
     v-model:visible="dialogUnsaved"
-    :style="{width: '450px'}"
-    header="New database form"
+    :style="{width: '50rem'}"
+    header="Changing database"
     :modal="true"
     class="p-fluid"
   >
@@ -456,16 +460,11 @@
         label="Leave this base"
         icon="pi pi-check"
         text
+        severity="warning"
         @click="chooseBase()"
       />
 
   </Dialog>
-
-  <Toast position ="top-right" 
-  v-model:visible="unsavedChanges" severity="warn"
-  summary="You have unsaved changes" />
-
-
 
 </template>
 
@@ -497,10 +496,10 @@ export default {
       idDuplicate: ref(false),
       visible : ref(false),
       isBaseSelected : ref(false),
-      unsavedChanges : ref(false),
       editingRows: [],
       selectedPeds : ref(),
       selectedBase: ref(),
+      manualSelectedBase: ref(),
       bases : ref([]),
       newData : ref(),
       dt : ref(),
@@ -571,7 +570,7 @@ export default {
       this.dialogUnsaved = false ;
       this.selectedPeds = [];
       this.isBaseSelected = true ;
-      
+      this.manualSelectedBase = (' ' + this.selectedBase).slice(1) ; //deep copy
       const path = 'http://int0663.hus-integration.fr:4280/files'
       axios.post(path, {"mybase": this.selectedBase})
       .then(() => {
@@ -593,7 +592,7 @@ export default {
     },
     cancelChoose(){
       this.dialogUnsaved = false;
-      this.selectedBase = "";
+      this.selectedBase = this.manualSelectedBase
 
     },
     createDB(){
@@ -613,9 +612,6 @@ export default {
       console.log(this.peds);
       console.log("payload");
       console.log(this.payload);
-      // for (var col of this.colonnes){
-      //   let this.payload[col] = "";
-      // }
       axios.post(path, this.payload)
         .then(() => {
           this.originalTable=true;
@@ -640,7 +636,7 @@ export default {
     },
     getDuplicate (ped) {
       const listeID = [];
-      for (var i of this.peds){
+      for (let i of this.peds){
         listeID.push(i.id);
       }
       this.idDuplicate=listeID.includes(ped.id);
@@ -663,13 +659,6 @@ export default {
         this.submitted=false;
       }
     },
-    editPed(ped2edit) {
-      this.pedDialog = true;
-      console.log('ligne',this.ped);
-      console.log('ligne',ped2edit);
-      console.log('ligne',this.selectedPeds);
-
-    },
     deleteSelectedPeds() {
       this.peds = this.peds.filter(
         (val) => !this.selectedPeds.includes(val)
@@ -691,27 +680,27 @@ export default {
         this.unsavedChanges = false;
       }
     },
-    async onUpload(event) {
-      fileUp= event.files[0];
-      const imgUpload = await fetch("http://int0663.hus-integration.fr:4280/upload", {
-        method: "POST",
-        body: files,
-      });
-      if (imgUpload) {
-        console.log(imgUpload);
-        toast.add({
-          severity: "info",
-          summary: "Success",
-          detail: "File Uploaded",
-          life: 10000,
-        });
-      }
+    onUpload(event) {
+      console.log("event:", event)
+      let fileUp = event.files[0];
+      let formData = new FormData();
+      formData.append('file', fileUp);
+      console.log("fileup",fileUp)
+      const path = 'http://int0663.hus-integration.fr:4280/upload';
+      axios.post(path, formData)
+       .then((res) => {
+         console.log("fileup",fileUp);
+         this.peds = res.data;
+         this.unsavedChanges = true;
+        })
+       .catch((error) => {
+           console.log(error);
+         })
     },
     
   },
   created() {
     this.originalTable = true;
-    // this.getPeds();
     this.getBases();
     this.unsavedChanges = false;
   },
@@ -720,7 +709,7 @@ export default {
   if (this.unsavedChanges == false) {
     next(false)
   } else {
-    const answer = window.confirm('Do you really want to leave? you have unsaved changes!');
+    window.confirm('Do you really want to leave? you have unsaved changes!');
     next()
   }
   window.onbeforeunload()
@@ -739,8 +728,14 @@ export default {
 </script>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300&display=swap');
 html {
-  font-size: 70% ;
+  font-size: 75% ;
 }
+.p-button-label{
+  font-family: 'Raleway', sans-serif;
+  font-weight: lighter;
+  font-size: 1.2rem;
 
+}
 </style>

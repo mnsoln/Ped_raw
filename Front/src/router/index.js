@@ -18,7 +18,7 @@ const router = createRouter({
       component: Ping
     },
     {
-      path: '/ped',
+      path: '/',
       name: 'Pedigree',
       component: Pedigree
     },

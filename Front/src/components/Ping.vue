@@ -2,7 +2,8 @@
   <div class="d-flex justify-content-center align-items-center" >
     <button type="button"
      class="btn btn-warning"
-     @click="getPingPong">{{ msg }}</button>
+     @click="getPingPong">{{ msg }}
+      </button>
   </div>
 </template>
 

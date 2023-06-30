@@ -1,25 +1,37 @@
 <template> 
- <div class="text-center">
-            <h1><a class="text-dark" href="#" style="font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  font-size: 5.25rem;  text-decoration: none;">Ped_raw</a></h1>
+ <!-- <div class="text-center">
+            <h1><a class="text-dark" href="#" style="serif;
+  font-size: 4.5rem;  text-decoration: none;">Ped_raw</a></h1>
+  <Button  raised button severity="help" style="font-size: 1.5rem; margin: 0.5rem"> <a href="/" class="navbar-brand"> Pedigree </a> </Button>
+          <Button class="mb-2"  severity="warning" style="font-size: 1.5rem; margin: 0.5rem;">
+          <a href="/doc" class="navbar-brand"> Documentation </a>
+          </Button>
           </div>
+           -->
+
 <ul class="list-unstyled">
-  
-  <Toolbar>
-    <template #center>
-    <!-- <button class="btn btn-outline-success btn-lg" type="button">
-    <RouterLink to="/" class="navbar-brand"> Table</RouterLink></button> -->
-    <Button raised text severity="warning" style="font-size: 1.5rem;">
-    <RouterLink to="/doc" class="navbar-brand" > Documentation </RouterLink> </Button>
-    <Button raised text severity="help" style="font-size: 1.5rem;">
-    <RouterLink to="/ped" class="navbar-brand" > Pedigree </RouterLink> </Button>
-    &#160
-    <Button raised text severity="warning" style="font-size: 1.5rem;">
-    <RouterLink to="/ping" class="navbar-brand" > Ping </RouterLink> </Button>
-    
-</template>
-</Toolbar>
+  <div class="nav-scroller py-1 mb-2">
+        <nav class="nav d-flex justify-content-between">
+          <div style="display: inline-flex; float: left;">
+          <img src="/logoprov5.png" margin-left='5rem'>
+          <h1><a class="text-dark" href="#" style="serif;
+                  font-size: 4rem;  text-decoration: none; margin: 2.5rem;">
+                  Ped_raw</a>
+          </h1>
+          </div>
+          <div style="display: inline-flex; float: right;">
+          <Button class="mb-2"   severity="secondary" style="font-size: 1.9rem;  margin-top: 0.5rem;
+          margin-bottom: 0.5rem;" text> <a href="/" class="navbar-brand"> Pedigree </a> </Button>
+          <Button class="mb-2"  severity="secondary" style="font-size: 1.85rem; margin: 0.5rem;" text>
+          <a href="/doc" class="navbar-brand"> Documentation </a>
+          </Button>
+          </div>
+        </nav>
+        <hr>
+      </div>
+
 </ul>
+
   <RouterView />
 
 </template>
@@ -29,6 +41,8 @@ import { RouterView } from 'vue-router'
 </script>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap');
+
 
 #app {
   margin-top: 1rem !important;
@@ -36,4 +50,8 @@ import { RouterView } from 'vue-router'
   margin-right: 0.5rem !important;
   padding: 0.5rem !important;
 }
+a {
+  font-family: 'Playfair Display', serif;
+}
+
 </style>

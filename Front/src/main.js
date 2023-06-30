@@ -121,9 +121,8 @@ import VirtualScroller from 'primevue/virtualscroller';
 const app = createApp(App)
 app.use(router)
 
-app.component('downloadCsv', JsonCSV)
+app.component('downloadCsv', JsonCSV);
 
-//app.component('EasyDataTable', Vue3EasyDataTable);
 app.use(PrimeVue, { ripple: true });
 app.component('Button', Button);
 app.component('DataTable', DataTable); 
