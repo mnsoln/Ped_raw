@@ -1,12 +1,10 @@
 <template>
-  <head>
-
-    <a class="blog-header-logo text-dark" href="#">Large</a>
-  </head>
+  <alert :message=message v-if="showMessage"></alert>
+  <errorMessage :message=message v-if="showError"></errorMessage>
   <nav class="nav d-flex justify-content-center" style="margin-bottom: 2rem;">
 
     <Dropdown v-model="selectedBase" :options="bases" placeholder="Search for or select an existing pedigree database"
-      class="w-full md:w-14rem" style="min-width: 35rem; margin-right: 2rem;" @change="selectBase()" />
+      class="w-full md:w-14rem" style="min-width: 40%; margin-right: 2rem;" @change="selectBase()" />
     <Button label="Create new database" icon="pi pi-plus" severity="success" size="small" @click="createDB()" />
 
   </nav>
@@ -183,18 +181,6 @@
     </template>
   </Dialog>
 
-  <Dialog v-model:visible="duplicateDialog" :style="{ width: '50rem' }" header="Error" :modal="true">
-    <div class="confirmation-content">
-      <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-      <span v-if="ped" id="saving">
-        The ID is already used. Every row needs to have a unique ID, please try
-        again.
-      </span>
-    </div>
-    <template #footer>
-      <Button label="Ok" icon="pi pi-times" text @click="duplicateDialog = false" />
-    </template>
-  </Dialog>
 
   <Dialog v-model:visible="baseDialog" :style="{ width: '50rem' }" header="New database form" :modal="true"
     class="p-fluid">
@@ -226,10 +212,12 @@
 
 <script>
 import axios from 'axios';
-import Alert from './Alert.vue'
+import Alert from './Alert.vue';
+import Error from './Error.vue';
 import { ref } from 'vue';
 import { isEqual } from 'lodash';
 import { FilterMatchMode } from "primevue/api";
+
 
 
 
@@ -245,7 +233,6 @@ export default {
       pedDialog: ref(false),
       deletePedsDialog: ref(false),
       confirmSaveDialog: ref(false),
-      duplicateDialog: ref(false),
       baseDialog: ref(false),
       dialogUnsaved: ref(false),
       confirmChange: ref(false),
@@ -260,16 +247,23 @@ export default {
       newData: ref(),
       dt: ref(),
       submitted: ref(false),
+      message: '',
       sexes: ["M", "F", "Unknown"],
       phenotypes: ["Affected", "Unaffected", "Missing"],
       filters: ref({
         'id': { value: null, matchMode: FilterMatchMode.CONTAINS }
       }),
-
+      showMessage: ref(false),
+      showError: ref(false),
     };
+  },
+  components: {
+    alert: Alert,
+    errorMessage: Error,
   },
   methods: {
     onRowEditSave(event) {
+      this.showError = false;
       this.submitted = true;
       console.log("i am here");
       console.log(this.ped);
@@ -279,7 +273,8 @@ export default {
       console.log("newData:", newData);
       this.getDuplicate(newData);
       if (newData.id != this.peds[index].id && this.idDuplicate == true) { // si l'id a change et qu'il existait deja
-        this.duplicateDialog = true;
+        this.message = "The ID you are trying to edit is already used. Every row needs to have a unique ID, please try again."
+        this.showError = true;
       } else {
         this.peds[index] = newData;
         this.tablesChanged();
@@ -288,6 +283,7 @@ export default {
 
     },
     getPeds() {
+      this.showError = false;
       const path = 'http://int0663.hus-integration.fr:4280/ped';
       console.log('getpeds')
       axios.get(path)
@@ -301,6 +297,8 @@ export default {
         })
         .catch((error) => {
           console.error(error);
+          this.message = "Error while getting the file data."
+          this.showError = true;
         });
 
     },
@@ -322,6 +320,8 @@ export default {
 
     },
     chooseBase() {
+      this.showError = false;
+      this.showMessage = false;
       console.log('choose')
       this.unsavedChanges = false;
       this.dialogUnsaved = false;
@@ -335,6 +335,9 @@ export default {
         })
         .catch((error) => {
           console.log(error);
+          this.message = "Error while changing base";
+          this.showError = true;
+
         })
         .finally(() => {
           console.log("finally:", this.selectedBase)
@@ -348,14 +351,15 @@ export default {
       chooseBase();
     },
     cancelChoose() {
+      this.showMessage = false;
       this.dialogUnsaved = false;
       this.selectedBase = this.manualSelectedBase
 
     },
     createDB() {
+      this.showMessage = false;
       this.baseDialog = true;
       this.selectedBase = null;
-
     },
     getOriginal() {
       console.log("getoriginal:", this.peds)
@@ -364,6 +368,8 @@ export default {
       this.unsavedChanges = false;
     },
     savePedsDef() {
+      this.showMessage = false;
+      this.showError = false;
       const path = 'http://int0663.hus-integration.fr:4280/ped';
       this.payload = JSON.parse(JSON.stringify(this.peds));
       console.log(this.peds);
@@ -378,13 +384,18 @@ export default {
           this.getOriginal();
           this.unsavedChanges = false;
           console.log('changes then?', this.unsavedChanges);
+          this.message = " The file has been saved.";
+          this.showMessage = true;
         })
         .catch((error) => {
           console.log(error);
           console.log('changes error?', this.unsavedChanges);
           this.confirmSaveDialog = false;
+          this.message = "Error happened while saving peds";
+          this.showError = true;
         });
       console.log('changes?', this.unsavedChanges);
+
     },
     cancelAddTemp() {
       this.pedDialog = false;
@@ -399,9 +410,9 @@ export default {
       this.idDuplicate = listeID.includes(ped.id);
     },
     addPedTemp() {
+      this.showMessage = false;
       this.submitted = true;
       console.log("ped id", this.ped.id);
-      //console.log("peds id",this.peds.value.id);
       this.getDuplicate(this.ped)
 
       if (this.ped.id && this.idDuplicate == false) {
@@ -414,9 +425,12 @@ export default {
         console.log(this.peds);
         this.tablesChanged();
         this.submitted = false;
+        this.showMessage = true;
+        this.message = "Ped added ! Don't forget to save before leaving.";
       }
     },
     deleteSelectedPeds() {
+      this.showMessage = false;
       this.peds = this.peds.filter(
         (val) => !this.selectedPeds.includes(val)
       );
@@ -425,10 +439,9 @@ export default {
       console.log('delete');
       console.log(this.peds);
       this.tablesChanged();
+      this.showMessage = true;
+      this.message = "Ped removed ! Don't forget to save before leaving.";
 
-    },
-    exportCSV() {
-      console.log("export this peds", this.peds);
     },
     tablesChanged() {
       if (isEqual(this.peds, this.originalPed) == false) {
@@ -438,20 +451,33 @@ export default {
       }
     },
     onUpload(event) {
+      this.showMessage = false;
+      this.showError = false;
       console.log("event:", event)
       let fileUp = event.files[0];
       let formData = new FormData();
       formData.append('file', fileUp);
-      console.log("fileup", fileUp)
+      console.log("fileup", fileUp);
       const path = 'http://int0663.hus-integration.fr:4280/upload';
       axios.post(path, formData)
         .then((res) => {
           console.log("fileup", fileUp);
-          this.peds = res.data;
-          this.unsavedChanges = true;
+          console.log("res data", res.data);
+          if (typeof res.data === "string") {
+            this.message = res.data;
+            this.showError = true;
+          } else {
+            this.peds = res.data;
+            this.unsavedChanges = true;
+            this.message = " Import successful !";
+            this.showMessage = true;
+          }
+
         })
         .catch((error) => {
           console.log(error);
+          this.message = "Import Error"
+          this.showError = true;
         })
     },
 

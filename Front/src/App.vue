@@ -20,8 +20,8 @@
           </h1>
         </div>
         <div style="display: inline-flex; float: right; margin-top: -1.5rem">
-          <Button class="mb-2" severity="secondary" style="font-size: 1.9rem;  margin-top: 0.5rem;
-          margin-bottom: 0.5rem;" text> <a href="/" class="navbar-brand"> Pedigree </a> </Button>
+          <Button class="mb-2" severity="secondary" style="font-size: 1.9rem;  margin-top: 0.5rem;" text> <a href="/"
+              class="navbar-brand"> Pedigree </a> </Button>
           <Button class="mb-2" severity="secondary" style="font-size: 1.85rem; margin: 0.5rem;" text>
             <a href="/doc" class="navbar-brand"> Documentation </a>
           </Button>

@@ -1,12 +1,12 @@
 <template>
-    <div>
-      <div class="alert alert-success" role="alert">{{ message }}</div>
-      <br/>
-    </div>
-  </template>
+  <div>
+    <Message :life="6000" severity="info" :sticky="false">{{ message }}</Message>
+  </div>
+</template>
   
-  <script>
-  export default {
-    props: ['message'],
-  };
-  </script>
+<script>
+import Message from 'primevue/message';
+export default {
+  props: ['message'],
+};
+</script>

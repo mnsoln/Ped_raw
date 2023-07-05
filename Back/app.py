@@ -3,16 +3,16 @@ from flask_cors import CORS, cross_origin
 import json
 import uuid
 import glob
-import os
+import csv
 import logging as log
 import io
-
+from collections import OrderedDict
 
 UPLOAD_FOLDER = "../Data/Uploads/"
 ALLOWED_EXTENSIONS = {"tsv", "csv", "json"}
 
 
-def set_log_level(verbosity):
+def set_log_level(verbosity: str):
     verbosity = verbosity.lower()
     configs = {
         "debug": log.DEBUG,
@@ -54,7 +54,7 @@ def get_files():
     return files
 
 
-def get_name_file(files, mode):
+def get_name_file(files:list, mode:str):
     if mode == "split":
         file_list = []
         for file in files:
@@ -78,6 +78,49 @@ def get_lines_content(post_data):
     log.debug(f"lines_list:{lines_list}")
     return lines_list, extension
 
+def check_extension(extension:str,first_line:list):
+    if extension == "csv" :
+        if '\t' in first_line:
+            return "\t"
+        else :
+            return ","
+    elif extension == "tsv" :
+        return "\t"
+    else:
+        error = "Import error : Wrong extension, only tsv and csv allowed"
+        return error
+
+def line_to_list(line):
+    """
+    >>>line_to_list('lias,fat,patient,"un,deux,trois",mom,Unaffected,M,"one,two,three"')
+    ['lias', 'fat', 'patient', 'un,deux,trois', 'mom', 'Unaffected', 'M', 'one,two,three']
+    """
+    reader = csv.reader([line])
+    result = next(reader)
+    return result
+
+def get_rows_list(lines_list,separator):
+    file_as_list = []
+    length = len(lines_list[0].split(separator))
+    for i in range(len(lines_list)):
+        if separator == "," and "\"" in lines_list[i]: 
+            log.debug(f" boucle guillemet {lines_list[i]}")
+            line_col_list = line_to_list(lines_list[i])
+            log.debug(f" boucle guillemet {line_col_list}")
+        else:       
+            line_col_list = lines_list[i].split(separator)
+
+        if line_col_list == [""]:
+            continue
+        log.debug(f"col_list {line_col_list}")
+        file_as_list.append(line_col_list)
+        log.debug(f" len col {len(lines_list[0].split(separator))} len row {len(line_col_list)}")
+        if length != len(line_col_list):
+            error = "Import error : The rows do not all have the same column number. Row " + str(i) + " has not the same number of columns as the header (which is row 0)."
+            return error
+    return file_as_list
+
+
 def reform_columns(file_list, authorized_colnames):
     to_ignore=[]
     col_names_list = []
@@ -99,11 +142,9 @@ def reform_columns(file_list, authorized_colnames):
 
     return col_names_list, file_list
 
-def get_dict_list(file_list0):
-    dict_list = []
+def get_columns(file_list0):
     list_col_order=[]
-    
-
+    error=""
     authorized_colnames =[["id","Patient ID", "ID"],
                 ["alias", "Aliases", "Alias"],
                 ["father", "Father"],
@@ -113,9 +154,9 @@ def get_dict_list(file_list0):
                 ["HPOList", "HPO List", "hpolist"],
                 ["starkTags","Stark Tags","starktags"]]
     
-
     if "id" not in file_list0[0] and "Patient ID" not in file_list0[0] and "ID" not in file_list0[0]:
-        raise NameError("id column mandatory")
+        error="Import error : An id column is missing. It can be named 'id', 'Patient ID' or 'ID'."
+        return error, None
     log.debug(f" FILELIST 1 {file_list0}")
     
     col_names_list, file_list = reform_columns(file_list0, authorized_colnames)
@@ -127,17 +168,41 @@ def get_dict_list(file_list0):
             if col_name in col_options : #check if column name in allowed pack        
                 list_col_order.append(col_options[0]) #add the right name for the json
                 log.debug(f" colname :{col_name}, col option : {col_options}")
-    log.debug(f"ORDER {list_col_order}")
 
-    for line in range(len(file_list)-1):  # get dictionnaries in list
-        mydict = {}
-        for n in range(len(list_col_order)):  # get lines in dictionnaries
+    return file_list,list_col_order
+
+
+def fill_dict(file_list, list_col_order):
+    dict_list = []
+    for line in range(len(file_list)-1):  # get dictionnaries in list, for each line
+        mydict = OrderedDict()
+        for n in range(len(list_col_order)):  # get lines in dictionnaries, for each column
             log.debug(f"line {line}  n {n}")
-
-            mydict[list_col_order[n]] = file_list[line+1][n]
-            log.debug(f" MYDICT {mydict}")
+            column = list_col_order[n]
+            value = file_list[line+1][n]
+            if column == "HPOList" or column == "starkTags":
+                mydict[column] = value.split(',')
+                log.debug(f"rentre dans boucle {column} avec value :{value}, donne {mydict[column]}")
+            elif column == "sex" :
+                if value in ["F","Female","female",2,"2"] :
+                    mydict[column] = "F"
+                elif value in ["M","Male","male",1,"1"]:
+                    mydict[column] = "M"
+                else :
+                    mydict[column] = "Unknown"
+            elif column == "phenotype" :
+                if value in ["Affected","affected",2,"yes","Yes","2"]:
+                    mydict[column] = "Affected"
+                elif value in ["Unaffected", "unaffected","no", "No",1,"1"]:
+                    mydict[column] = "Unaffected"
+                else :
+                    mydict[column] = "Missing"
+            else :
+                mydict[column] = value
+                log.debug(f" MYDICT {mydict}")
         dict_list.append(mydict)
     return dict_list
+
 
 
 def merge_peds(dict_list):
@@ -148,8 +213,10 @@ def merge_peds(dict_list):
         peds_merged = data + dict_list
         return peds_merged
 
-
-CURRENT_FILE = get_files()[0]
+if len(get_files()) < 1:
+    CURRENT_FILE = ""
+else :
+    CURRENT_FILE = get_files()[0]
 
 
 @app.route("/files", methods=["GET", "POST"])
@@ -204,39 +271,30 @@ def upload_file():
     if request.method == "POST":
         post_data = request.files
         log.debug(f"file2:{post_data}")
-        file_as_list = []
         id_list = []
 
         if "file" not in request.files:
-            raise ImportError("No file imported")
+            error = "Import error : No file imported"
+            return error
 
         lines_list, extension = get_lines_content(post_data)
 
-        if extension == "csv" :
-            separator = ","
-        elif extension == "tsv" :
-            separator = "\t"
-        else:
-            raise TypeError("wrong extension, only tsv and csv allowed")
-        
-        
+        separator = check_extension(extension,lines_list[0])
+        if separator.startswith("Import"):
+            error = separator
+            return error
 
-        length = len(lines_list[0].split(separator))
-        for i in range(len(lines_list)):
-            line_col_list = lines_list[i].split(separator)
-            if line_col_list == [""]:
-                continue
+        file_as_list = get_rows_list(lines_list,separator)
+        if isinstance(file_as_list, str) == True:
+            error = file_as_list
+            return error
 
-            log.debug(f"col_list {line_col_list}")
-            file_as_list.append(line_col_list)
-            if length != len(line_col_list):
-                log.debug(f"error : not same column numbers col:{i}")
-                raise IndexError("Not same numbers of columns col:", i)
-        log.debug(f"file_list{file_as_list}")
+        file_list,list_col_order = get_columns(file_as_list)
+        if list_col_order == None:
+            error = file_list
+            return error
 
-
-
-        dict_list = get_dict_list(file_as_list)
+        dict_list = fill_dict(file_list, list_col_order)
 
         peds_merged = merge_peds(dict_list)
 
@@ -244,7 +302,8 @@ def upload_file():
         for i in range(len(peds_merged)):
             id_list.append(peds_merged[i]["id"])
         if len(set(id_list)) != len(id_list):
-            raise NameError("IDs are not unique")
+            error = "Import error : IDs are not unique."
+            return error
         else:
             log.debug("sortie")
             return jsonify(peds_merged)
