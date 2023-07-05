@@ -64,7 +64,7 @@ export default {
   methods: {
     getPingPong() {
       const path = 'http://int0663.hus-integration.fr:4280/ping';
-      axios.post(path, { msg: this.msg })
+      axios.post(path, { msg: this.msg }, { withCredentials: true })
         .then((res) => {
           this.msg = res.data;
           //console.log(this.msg);

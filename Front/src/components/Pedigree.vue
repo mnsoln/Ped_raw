@@ -5,7 +5,7 @@
 
     <Dropdown v-model="selectedBase" :options="bases" placeholder="Search for or select an existing pedigree database"
       class="w-full md:w-14rem" style="min-width: 40%; margin-right: 2rem;" @change="selectBase()" />
-    <Button label="Create new database" icon="pi pi-plus" severity="success" size="small" @click="createDB()" />
+    <Button label="Create new database" icon="pi pi-plus" severity="success" size="small" @click="DialogCreateDB()" />
 
   </nav>
   <div>
@@ -30,7 +30,7 @@
         </template>
         <template #end>
           <span
-            v-tooltip.bottom="{ value: `<h6> Use this button when you have selected a database to import data into it. </h6>`, escape: true, class: 'custom-error' }">
+            v-tooltip.bottom="{ value: `<h6> Use this button when you have selected a database to import data into it. <br> <strong> More information is available in the 'Documentation' page. </strong> </h6>`, escape: true, class: 'custom-error' }">
             <FileUpload mode="basic" name="myfile[]" accept=".csv,.tsv" :maxFileSize="1000000" label="Import"
               chooseLabel="Import" class="mr-2 inline-block" :disabled="!isBaseSelected" :auto="true"
               url="http://int0663.hus-integration.fr:4280/upload" customUpload @uploader="onUpload" />
@@ -194,7 +194,7 @@
     </div>
     <template #footer>
       <Button label="Cancel" icon="pi pi-times" text @click="baseDialog = false" />
-      <Button label="Confirm" icon="pi pi-check" text @click="chooseBase()" />
+      <Button label="Confirm" icon="pi pi-check" text @click="confirmCreateDB()" />
     </template>
   </Dialog>
 
@@ -286,7 +286,7 @@ export default {
       this.showError = false;
       const path = 'http://int0663.hus-integration.fr:4280/ped';
       console.log('getpeds')
-      axios.get(path)
+      axios.get(path, { withCredentials: true })
         .then((res) => {
           this.peds = res.data;
           console.log('peds récupéré', this.peds);
@@ -304,7 +304,7 @@ export default {
     },
     getBases() {
       const path = 'http://int0663.hus-integration.fr:4280/files'
-      axios.get(path)
+      axios.get(path, { withCredentials: true })
         .then((res) => {
           this.bases = res.data;
           console.log("getBases:", this.bases);
@@ -321,7 +321,6 @@ export default {
     },
     chooseBase() {
       this.showError = false;
-      this.showMessage = false;
       console.log('choose')
       this.unsavedChanges = false;
       this.dialogUnsaved = false;
@@ -329,7 +328,7 @@ export default {
       this.isBaseSelected = true;
       this.manualSelectedBase = (' ' + this.selectedBase).slice(1); //deep copy
       const path = 'http://int0663.hus-integration.fr:4280/files'
-      axios.post(path, { "mybase": this.selectedBase })
+      axios.post(path, { "mybase": this.selectedBase }, { withCredentials: true })
         .then(() => {
           console.log("postBase:", this.selectedBase);
         })
@@ -356,10 +355,17 @@ export default {
       this.selectedBase = this.manualSelectedBase
 
     },
-    createDB() {
-      this.showMessage = false;
+    DialogCreateDB() {
+      this.message = false;
       this.baseDialog = true;
       this.selectedBase = null;
+    },
+    confirmCreateDB() {
+      this.chooseBase();
+      this.message = "Your new database has been created. Please refresh the website to access it.";
+      this.showMessage = true;
+
+
     },
     getOriginal() {
       console.log("getoriginal:", this.peds)
@@ -375,7 +381,7 @@ export default {
       console.log(this.peds);
       console.log("payload");
       console.log(this.payload);
-      axios.post(path, this.payload)
+      axios.post(path, this.payload, { withCredentials: true })
         .then(() => {
           this.originalTable = true;
           this.getPeds();
@@ -459,7 +465,7 @@ export default {
       formData.append('file', fileUp);
       console.log("fileup", fileUp);
       const path = 'http://int0663.hus-integration.fr:4280/upload';
-      axios.post(path, formData)
+      axios.post(path, formData, { withCredentials: true })
         .then((res) => {
           console.log("fileup", fileUp);
           console.log("res data", res.data);

@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, request, flash
+from flask import Flask, jsonify, request, flash, session
 from flask_cors import CORS, cross_origin
+
 import json
 import uuid
 import glob
@@ -7,9 +8,6 @@ import csv
 import logging as log
 import io
 from collections import OrderedDict
-
-UPLOAD_FOLDER = "../Data/Uploads/"
-ALLOWED_EXTENSIONS = {"tsv", "csv", "json"}
 
 
 def set_log_level(verbosity: str):
@@ -37,17 +35,17 @@ set_log_level("debug")
 
 # instantiate the app
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-# app.config.from_object(__name__)
-# app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+app.secret_key = '_5#y2L"F4Q8z77ec]/'
 
-# log.getLogger('flask_cors').level = log.DEBUG
+
+
+
+
 # enable CORS
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials =True)
 
 
 ##PED
-
 
 def get_files():
     files = glob.glob("../Data/*.json")
@@ -206,39 +204,36 @@ def fill_dict(file_list, list_col_order):
 
 
 def merge_peds(dict_list):
-    with open(CURRENT_FILE, "r") as PEDS:
-        log.debug(f"/up 2 curr: {CURRENT_FILE}")
+    with open(session['CURRENT_FILE'], "r") as PEDS:
+        log.debug(f"/up 2 curr: {session['CURRENT_FILE']}")
         data = json.load(PEDS)
         log.debug(f"/up data1 : {data}")
         peds_merged = data + dict_list
         return peds_merged
 
-if len(get_files()) < 1:
-    CURRENT_FILE = ""
-else :
-    CURRENT_FILE = get_files()[0]
-
 
 @app.route("/files", methods=["GET", "POST"])
 def all_files():
     if request.method == "POST":
-        global CURRENT_FILE
+
         files = get_files()
         selected_base = request.get_json()["mybase"]
-        CURRENT_FILE = get_name_file(selected_base, "get")
+        session['CURRENT_FILE'] = get_name_file(selected_base, "get")
+        session["yolonaise"] = "swag"
 
-        if CURRENT_FILE not in files:  # create new file
-            CURRENT_FILE = "../Data/" + CURRENT_FILE
-            if CURRENT_FILE.endswith(".json") == False:
-                CURRENT_FILE = CURRENT_FILE + ".json"
-            with open(CURRENT_FILE, "w") as new:
+        if session['CURRENT_FILE'] not in files:  # create new file
+            session['CURRENT_FILE'] = "../Data/" + session['CURRENT_FILE']
+            if session['CURRENT_FILE'].endswith(".json") == False:
+                session['CURRENT_FILE'] = session['CURRENT_FILE'] + ".json"
+            with open(session['CURRENT_FILE'], "w") as new:
                 new.write("[]")
 
         log.debug(f"request:{request.get_json()}")
-        log.debug(f"curr post files:{CURRENT_FILE}")
+        log.debug(f"curr post files:{session['CURRENT_FILE']}")
         return {"status": "success"}
 
     elif request.method == "GET":
+
         files = get_files()
         paths = get_name_file(files, "split")
         return jsonify(paths)
@@ -246,21 +241,25 @@ def all_files():
 
 @app.route("/ped", methods=["GET", "POST"])
 def all_peds():
-    global CURRENT_FILE
     if request.method == "POST":
         post_data = request.get_json()
         log.debug(f"/ped POST: {post_data}")
-        with open(CURRENT_FILE, "w") as PEDS:
+        with open(session['CURRENT_FILE'], "w") as PEDS:
             PEDS.write(json.dumps(post_data))
         return {"status": "success"}
 
     elif request.method == "GET":
-        log.debug(f"/ped GET: {CURRENT_FILE}")
-        with open(CURRENT_FILE, "r") as PEDS:
-            log.debug(f"/ped GET 2 curr: {CURRENT_FILE}")
+        log.debug(f"session:{session}")
+        log.debug(f"session[current]:{session.get('CURRENT_FILE')}")
+        # if 'CURRENT_FILE' in session :
+        #     log.debug(f"/ped GET: {session['CURRENT_FILE']}")
+        with open(session.get('CURRENT_FILE'), "r") as PEDS:
+            # log.debug(f"/ped GET 2 curr: {session['CURRENT_FILE']}")
             data = PEDS.read()
-            log.debug(f"/ped GET data1 : {data}")
+            # log.debug(f"/ped GET data1 : {data}")
         return data
+        # else :
+        #     log.debug("NOO")
 
     else:
         raise NotImplementedError("Only GET and POST requests implemented for /ped")
