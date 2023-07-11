@@ -31,19 +31,23 @@
 
 
 
-import csv
+# import csv
 
-line = 'lias,fat,patient,"un,deux,trois",mom,Unaffected,M,"one,two,three"'
-line2 = '"un,deux,trois",lias,fat,patient,mom,Unaffected,M,"one,two,three"'
+# line = 'lias,fat,patient,"un,deux,trois",mom,Unaffected,M,"one,two,three"'
+# line2 = '"un,deux,trois",lias,fat,patient,mom,Unaffected,M,"one,two,three"'
 
-# Create a CSV reader object
-reader = csv.reader([line])
-result1 = next(reader)
+# # Create a CSV reader object
+# reader = csv.reader([line])
+# result1 = next(reader)
 
-reader = csv.reader([line2])
-result2 = next(reader)
+# reader = csv.reader([line2])
+# result2 = next(reader)
 
-print(result1)
-print(result2)
+# print(result1)
+# print(result2)
 
+intt = 12
+stri = 'fam'
+lol = stri + str(intt)
+print(lol)
 

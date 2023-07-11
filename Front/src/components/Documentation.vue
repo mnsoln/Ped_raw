@@ -1,7 +1,7 @@
 <template >
   <div class="m-4">
     <Panel class="m-3" header="How to use" toggleable>
-      <p class="m-2">
+      <p v-breathing-colors="sample">
         Firstly, you will <u> need to choose which database to work with</u> : you can use the drop-down list to select an
         existing one, or create a new one using the button and then select it.
         <br>
@@ -11,19 +11,28 @@
       </p>
       <p class="m-2">
 
-        <u>Imported files</u> will need to have a special structure. They are required to have at least one id column
-        named 'id', 'Patient ID' or 'ID'. Here are the possible column names which will be used in this website.
+        <u>Imported files</u> will need to have a special structure. They are <strong>required</strong> to have at least
+        one column for patient identification named 'id', 'Patient ID' or 'ID'. Here are the possible column names which
+        will be used in this website.
         They can have as many columns as you wish, they will simply be ignored if not in the following list :
       <ul>
-        <li> <u> "Patient ID" column :</u> "id", "ID", "Patient ID" </li>
-        <li> <u> "Aliases" column :</u> "alias", "Alias", "Aliases" </li>
-        <li> <u> "Mother" column :</u> "mother", "Mother" </li>
-        <li> <u> "Father" column :</u> "father", "Father" </li>
-        <li> <u> "Phenotype" column :</u> "phenotype, "Phenotype" </li>
-        <li> <u> "HPO List" column :</u> "HPOList", "hpolist", "HPO List" </li>
-        <li> <u> "Stark Tags" column :</u> "starkTags", "Stark Tags", "starktags" </li>
+        <li> <strong> "Patient ID" column :</strong> "id", "ID", "Patient ID" </li>
+        <li> <strong> "Aliases" column :</strong> "alias", "Alias", "Aliases" </li>
+        <li> <strong> "Mother" column :</strong> "mother", "Mother" </li>
+        <li> <strong> "Father" column :</strong> "father", "Father" </li>
+        <li> <strong> "Sex" column :</strong> "sex", "Sex"
+          <br><strong>Values accepted :</strong> <u>Female</u> :
+          "F","Female","female",2,"2". <u>Male</u> :
+          "M","Male","male",1,"1"
+        </li>
+        <li> <strong> "Phenotype" column :</strong> "phenotype, "Phenotype".
+          <br> <strong>Values accepted :</strong> <u>Affected</u> :
+          "Affected","affected",2,"yes","Yes","2". <u>Unaffected</u> : "Unaffected", "unaffected","no", "No",1,"1"
+        </li>
+        <li> <strong> "HPO List" column :</strong> "HPOList", "hpolist", "HPO List" </li>
+        <li> <strong> "Stark Tags" column :</strong> "starkTags", "Stark Tags", "starktags" </li>
       </ul>
-      Moreover, you are able to <u>download</u> any of the files.
+      Moreover, you are able to <u>download</u> any of the files in CSV format.
       </p>
     </Panel>
 
@@ -59,6 +68,8 @@ export default {
   data() {
     return {
       msg: ref('MEDINA Solène !'),
+
+
     };
   },
   methods: {
@@ -67,7 +78,6 @@ export default {
       axios.post(path, { msg: this.msg }, { withCredentials: true })
         .then((res) => {
           this.msg = res.data;
-          //console.log(this.msg);
         })
         .catch((error) => {
 
@@ -102,7 +112,7 @@ export default {
 
 .m-4 {
   min-width: 90%;
-  width: 95%;
+  width: 96%;
   max-width: 98%;
   position: relative;
   top: 10%;

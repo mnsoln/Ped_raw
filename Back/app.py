@@ -1,13 +1,10 @@
-from flask import Flask, jsonify, request, flash, session
-from flask_cors import CORS, cross_origin
-
+from flask import Flask, jsonify, request, session, send_file, send_from_directory
+from flask_cors import CORS
 import json
-import uuid
 import glob
-import csv
 import logging as log
-import io
-from collections import OrderedDict
+from upload import get_lines_content, check_extension, get_rows_list, get_columns, merge_peds, fill_dict
+import os
 
 
 def set_log_level(verbosity: str):
@@ -38,11 +35,8 @@ app = Flask(__name__)
 app.secret_key = '_5#y2L"F4Q8z77ec]/'
 
 
-
-
-
 # enable CORS
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials =True)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials = True)
 
 
 ##PED
@@ -63,153 +57,20 @@ def get_name_file(files:list, mode:str):
         my_file = "../Data/" + files + ".json"
         return my_file
 
-
-def get_lines_content(post_data):
-    file_encoded = post_data["file"]
-    log.debug(f"file2:{file_encoded}")
-    filename = file_encoded.filename
-    extension = filename.rsplit('.',1)[1]
-    myfile = io.TextIOWrapper(file_encoded, encoding="utf-8-sig")  # decoding
-    file_content = myfile.read()
-    log.debug(f"file content:{file_content}")
-    lines_list = file_content.split("\n")
-    log.debug(f"lines_list:{lines_list}")
-    return lines_list, extension
-
-def check_extension(extension:str,first_line:list):
-    if extension == "csv" :
-        if '\t' in first_line:
-            return "\t"
-        else :
-            return ","
-    elif extension == "tsv" :
-        return "\t"
-    else:
-        error = "Import error : Wrong extension, only tsv and csv allowed"
-        return error
-
-def line_to_list(line):
-    """
-    >>>line_to_list('lias,fat,patient,"un,deux,trois",mom,Unaffected,M,"one,two,three"')
-    ['lias', 'fat', 'patient', 'un,deux,trois', 'mom', 'Unaffected', 'M', 'one,two,three']
-    """
-    reader = csv.reader([line])
-    result = next(reader)
-    return result
-
-def get_rows_list(lines_list,separator):
-    file_as_list = []
-    length = len(lines_list[0].split(separator))
-    for i in range(len(lines_list)):
-        if separator == "," and "\"" in lines_list[i]: 
-            log.debug(f" boucle guillemet {lines_list[i]}")
-            line_col_list = line_to_list(lines_list[i])
-            log.debug(f" boucle guillemet {line_col_list}")
-        else:       
-            line_col_list = lines_list[i].split(separator)
-
-        if line_col_list == [""]:
-            continue
-        log.debug(f"col_list {line_col_list}")
-        file_as_list.append(line_col_list)
-        log.debug(f" len col {len(lines_list[0].split(separator))} len row {len(line_col_list)}")
-        if length != len(line_col_list):
-            error = "Import error : The rows do not all have the same column number. Row " + str(i) + " has not the same number of columns as the header (which is row 0)."
-            return error
-    return file_as_list
-
-
-def reform_columns(file_list, authorized_colnames):
-    to_ignore=[]
-    col_names_list = []
-
-    flat_list = [item for sublist in authorized_colnames for item in sublist]
-
-    for l in file_list[0]:  # get column names
-        if l not in flat_list :
-            to_ignore.append(file_list[0].index(l))
-            log.debug(f" colname ignored {l} index {file_list[0].index(l)}")
-            continue
-        col_names_list.append(l)
-    
-    #remove unwanted columns
-    for line in file_list :
-        for i in range(len(to_ignore)):
-            line.pop(to_ignore[i])
-    log.debug(f" FILELIST 2 {file_list}")
-
-    return col_names_list, file_list
-
-def get_columns(file_list0):
-    list_col_order=[]
-    error=""
-    authorized_colnames =[["id","Patient ID", "ID"],
-                ["alias", "Aliases", "Alias"],
-                ["father", "Father"],
-                ["mother", "Mother"],
-                ["sex", "Sex"],
-                ["phenotype", "Phenotype"],
-                ["HPOList", "HPO List", "hpolist"],
-                ["starkTags","Stark Tags","starktags"]]
-    
-    if "id" not in file_list0[0] and "Patient ID" not in file_list0[0] and "ID" not in file_list0[0]:
-        error="Import error : An id column is missing. It can be named 'id', 'Patient ID' or 'ID'."
-        return error, None
-    log.debug(f" FILELIST 1 {file_list0}")
-    
-    col_names_list, file_list = reform_columns(file_list0, authorized_colnames)
-
-
-    # find which column is in order and add the right name for the json
-    for col_name in col_names_list: #for each column
-        for col_options in authorized_colnames : #for each pack of allowed column names
-            if col_name in col_options : #check if column name in allowed pack        
-                list_col_order.append(col_options[0]) #add the right name for the json
-                log.debug(f" colname :{col_name}, col option : {col_options}")
-
-    return file_list,list_col_order
-
-
-def fill_dict(file_list, list_col_order):
-    dict_list = []
-    for line in range(len(file_list)-1):  # get dictionnaries in list, for each line
-        mydict = OrderedDict()
-        for n in range(len(list_col_order)):  # get lines in dictionnaries, for each column
-            log.debug(f"line {line}  n {n}")
-            column = list_col_order[n]
-            value = file_list[line+1][n]
-            if column == "HPOList" or column == "starkTags":
-                mydict[column] = value.split(',')
-                log.debug(f"rentre dans boucle {column} avec value :{value}, donne {mydict[column]}")
-            elif column == "sex" :
-                if value in ["F","Female","female",2,"2"] :
-                    mydict[column] = "F"
-                elif value in ["M","Male","male",1,"1"]:
-                    mydict[column] = "M"
-                else :
-                    mydict[column] = "Unknown"
-            elif column == "phenotype" :
-                if value in ["Affected","affected",2,"yes","Yes","2"]:
-                    mydict[column] = "Affected"
-                elif value in ["Unaffected", "unaffected","no", "No",1,"1"]:
-                    mydict[column] = "Unaffected"
-                else :
-                    mydict[column] = "Missing"
-            else :
-                mydict[column] = value
-                log.debug(f" MYDICT {mydict}")
-        dict_list.append(mydict)
-    return dict_list
-
-
-
-def merge_peds(dict_list):
-    with open(session['CURRENT_FILE'], "r") as PEDS:
-        log.debug(f"/up 2 curr: {session['CURRENT_FILE']}")
-        data = json.load(PEDS)
-        log.debug(f"/up data1 : {data}")
-        peds_merged = data + dict_list
-        return peds_merged
+def ped_code(line):
+    if line['sex'] ==  'M':
+        line['sex']  = '1'
+    elif line['sex'] == 'F':
+        line['sex']  = '2'
+    else : 
+        line['sex']  = '0'
+    if line['phenotype'] ==  'Unaffected':
+        line['phenotype']  = '1'
+    elif line['phenotype'] == 'Affected':
+        line['phenotype']  = '2'
+    else : 
+        line['phenotype']  = '0'
+    return line
 
 
 @app.route("/files", methods=["GET", "POST"])
@@ -218,18 +79,17 @@ def all_files():
 
         files = get_files()
         selected_base = request.get_json()["mybase"]
-        session['CURRENT_FILE'] = get_name_file(selected_base, "get")
-        session["yolonaise"] = "swag"
+        session['CURRENT_FILE'] = get_name_file(selected_base, "get") #get the session value
 
         if session['CURRENT_FILE'] not in files:  # create new file
             session['CURRENT_FILE'] = "../Data/" + session['CURRENT_FILE']
             if session['CURRENT_FILE'].endswith(".json") == False:
                 session['CURRENT_FILE'] = session['CURRENT_FILE'] + ".json"
-            with open(session['CURRENT_FILE'], "w") as new:
-                new.write("[]")
+            with open(session['CURRENT_FILE'], "w") as new_file:
+                new_file.write("[]")
 
-        log.debug(f"request:{request.get_json()}")
-        log.debug(f"curr post files:{session['CURRENT_FILE']}")
+        # log.debug(f"request:{request.get_json()}")
+        log.debug(f"curr post /files post:{session['CURRENT_FILE']}")
         return {"status": "success"}
 
     elif request.method == "GET":
@@ -250,16 +110,9 @@ def all_peds():
 
     elif request.method == "GET":
         log.debug(f"session:{session}")
-        log.debug(f"session[current]:{session.get('CURRENT_FILE')}")
-        # if 'CURRENT_FILE' in session :
-        #     log.debug(f"/ped GET: {session['CURRENT_FILE']}")
         with open(session.get('CURRENT_FILE'), "r") as PEDS:
-            # log.debug(f"/ped GET 2 curr: {session['CURRENT_FILE']}")
             data = PEDS.read()
-            # log.debug(f"/ped GET data1 : {data}")
         return data
-        # else :
-        #     log.debug("NOO")
 
     else:
         raise NotImplementedError("Only GET and POST requests implemented for /ped")
@@ -269,7 +122,6 @@ def all_peds():
 def upload_file():
     if request.method == "POST":
         post_data = request.files
-        log.debug(f"file2:{post_data}")
         id_list = []
 
         if "file" not in request.files:
@@ -277,24 +129,31 @@ def upload_file():
             return error
 
         lines_list, extension = get_lines_content(post_data)
-
+        log.debug(f"LINES LIST AVANT USE {lines_list}")
         separator = check_extension(extension,lines_list[0])
         if separator.startswith("Import"):
             error = separator
             return error
-
-        file_as_list = get_rows_list(lines_list,separator)
-        if isinstance(file_as_list, str) == True:
-            error = file_as_list
-            return error
-
-        file_list,list_col_order = get_columns(file_as_list)
+        if isinstance(lines_list[0], list):
+            file_as_list = lines_list
+        else :
+            if separator == "xlsx" :
+                if '\t' in lines_list[0]:
+                    separator = "\t"
+                else :
+                    separator = ","
+            file_as_list = get_rows_list(lines_list,separator)
+            if isinstance(file_as_list, str) == True:
+                error = file_as_list
+                return error
+        log.debug("debut get columns")
+        file_list,list_col_order = get_columns(file_as_list, extension)
         if list_col_order == None:
             error = file_list
             return error
-
+        log.debug("debut fill dict")
         dict_list = fill_dict(file_list, list_col_order)
-
+        log.debug("debut merge peds")
         peds_merged = merge_peds(dict_list)
 
         # unique ids
@@ -306,6 +165,52 @@ def upload_file():
         else:
             log.debug("sortie")
             return jsonify(peds_merged)
+
+
+@app.route("/download", methods=["GET", "POST"])
+def download_file():
+    import tempfile
+    tmp_dir = tempfile.gettempdir()
+    if request.method == "POST":
+        post_data = request.get_json()
+        with open (session['CURRENT_FILE'],'r') as input :
+                data = json.load(input)
+        log.debug(f"data {data}")
+        if post_data['typefile'] == 'Ped file': 
+            log.debug("peddd sam")
+            
+            with open(os.path.join(tmp_dir,'download.ped'),'w') as output :
+                print('#Family ID', 'Individual ID', 'Paternal ID', 'Maternal ID', 'Sex', 'Phenotype', file=output, sep='\t')
+                
+                for line in data :
+                    line = ped_code(line)
+        
+                    print(line['famID'], line['id'], line['paternalID'], line['maternalID'], line['sex'], line['phenotype'], file=output, sep='\t')
+                    log.debug(f"{line['famID'], line['id'], line['paternalID'], line['maternalID'], line['sex'], line['phenotype']}")
+            
+
+        if post_data['typefile'] == 'Advanced Ped file':
+            log.debug(" Advanced Ped file if")
+            with open(os.path.join(tmp_dir,'download.ped'),'w') as output :
+                print('#Family ID', 'Individual ID', 'Paternal ID', 'Maternal ID', 'Sex', 'Phenotype', 'Alias', 'HPOList', 'STARK Tags', file=output, sep='\t')
+                # output.write("\t".join(['#Family ID', 'Individual ID', 'Paternal ID', 'Maternal ID', 'Sex', 'Phenotype', 'Alias', 'HPOList', 'STARK Tags']) + "\n")
+                log.debug(f"DATA:{data}")
+                for line in data :
+                    line = ped_code(line)
+                    for i in [line['HPOList'], line['starkTags']] :
+                        log.debug(f"i {i}")
+                        # if ',' in str(i):
+                        #     i = str(i)[0:2]+str(i)[3:-3]+str(i)[-2:]
+                        #     res = i.replace('\'', '')
+                        #     log.debug(f"i2 {i}")
+                        #     log.debug(f"res {res}")
+                    log.debug(f" avant {line['HPOList']}")
+                    log.debug(f" après {','.join(line['HPOList'])}")
+                    
+                    print(line['famID'], line['id'], line['paternalID'], line['maternalID'], line['sex'], line['phenotype'], line['alias'], ','.join(line['HPOList']), ','.join(line['starkTags']), file=output, sep='\t')
+                
+        return send_file(os.path.join(tmp_dir,'download.ped'))
+            
 
 
 # sanity check route, la route du site backend ou il va chercher les infos

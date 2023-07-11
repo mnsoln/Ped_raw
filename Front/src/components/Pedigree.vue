@@ -5,7 +5,8 @@
 
     <Dropdown v-model="selectedBase" :options="bases" placeholder="Search for or select an existing pedigree database"
       class="w-full md:w-14rem" style="min-width: 40%; margin-right: 2rem;" @change="selectBase()" />
-    <Button label="Create new database" icon="pi pi-plus" severity="success" size="small" @click="DialogCreateDB()" />
+    <Button label="Create new database" icon="pi pi-plus" severity="success" size="small" @click="DialogCreateDB()"
+      raised />
 
   </nav>
   <div>
@@ -14,32 +15,35 @@
         <template #start>
           <span
             v-tooltip.right="{ value: `<h6> Use this button when you have selected a database if you want to add a row. Don't forget to save your changes. </h6>`, escape: true, class: 'custom-error' }">
-            <Button label="Add" icon="pi pi-plus" severity="success" @click="pedDialog = true"
+            <Button class="m-1" label="Add" icon="pi pi-plus" severity="success" @click="pedDialog = true"
               :disabled="!isBaseSelected" /> </span>
           <span
             v-tooltip.bottom="{ value: `<h6> Select rows and use this button to delete them. Don't forget to save your changes. </h6>`, escape: true, class: 'custom-error' }">
-            <Button label="Delete" icon="pi pi-trash" severity="danger" @click="deletePedsDialog = true"
+            <Button class="m-1" label="Delete" icon="pi pi-trash" severity="danger" @click="deletePedsDialog = true"
               :disabled="!selectedPeds || !selectedPeds.length" /></span>
         </template>
         <template #center>
           <span
             v-tooltip.bottom="{ value: `<h6> Use this button when you have made changes to a database to save them. </h6>`, escape: true, class: 'custom-error' }">
-            <Button label="Save your changes" icon="pi pi-check" severity="success" class="mr-2" size="large"
-              :disabled="this.unsavedChanges == false" @click="confirmSaveDialog = true" />
+            <Button class="m-1" v-if="unsavedChanges == false" label="Saved." icon="pi pi-check-square" severity="success"
+              size="large" disabled @click="confirmSaveDialog = true" />
+            <Button class="m-1" v-if="unsavedChanges" label="Save your changes to database" icon="pi pi-save
+" severity="warning" size="large" @click="confirmSaveDialog = true" raised />
           </span>
         </template>
         <template #end>
           <span
             v-tooltip.bottom="{ value: `<h6> Use this button when you have selected a database to import data into it. <br> <strong> More information is available in the 'Documentation' page. </strong> </h6>`, escape: true, class: 'custom-error' }">
-            <FileUpload mode="basic" name="myfile[]" accept=".csv,.tsv" :maxFileSize="1000000" label="Import"
-              chooseLabel="Import" class="mr-2 inline-block" :disabled="!isBaseSelected" :auto="true"
+            <FileUpload mode="basic" accept=".csv,.tsv,.xlsx,.ped" :maxFileSize="1000000" label="Import"
+              chooseLabel="Import" class="m-1" :disabled="!isBaseSelected" :auto="true"
               url="http://int0663.hus-integration.fr:4280/upload" customUpload @uploader="onUpload" />
           </span>
           <span
             v-tooltip.left="{ value: `<h6> Use this button when you have selected a database to download its data. </h6>`, escape: true, class: 'custom-error' }">
-            <download-csv :data="peds">
-              <Button label="Download" icon="pi pi-upload" :disabled="!peds" severity="help" />
-            </download-csv>
+
+            <Button class="m-1" label="Download" severity="help" icon="pi pi-download" @click="downloadDialog = true"
+              :disabled="!isBaseSelected" />
+
           </span>
         </template>
       </Toolbar>
@@ -48,7 +52,8 @@
         v-model:filters="filters" dataKey="id" editMode="row" filterDisplay="row" @row-edit-save="onRowEditSave"
         tableClass="editable-cells-table" :paginator="true" :rows="10" showGridlines
         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLinkLastPageLink CurrentPageReport RowsPerPageDropdown"
-        :rowsPerPageOptions="[5, 10, 25]" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} peds">
+        :rowsPerPageOptions="[5, 10, 25, 50]"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} peds">
 
         <Column selectionMode="multiple" style="width: 2rem" :exportable="false"></Column>
         <Column field="id" header="Patient ID" sortable style="min-width: 9rem;">
@@ -60,17 +65,24 @@
             <InputText v-model="data[field]" required="true" style="min-width: 8rem; max-width: 10rem;" />
           </template>
         </Column>
-        <Column field="alias" header="Aliases" sortable style="min-width: 7rem">
+        <Column field="famID" header="Family ID" sortable style="min-width: 8rem;">
+          <template #filter="{ filterModel, filterCallback }">
+            <InputText v-model="filterModel.value" v-tooltip.top.focus="'Hit any key to filter'" type="text"
+              @keydown="filterCallback()" class="p-column-filter" placeholder="Search for an ID" style="width: 9rem;" />
+          </template>
+          <template #editor="{ data, field }">
+            <InputText v-model="data[field]" required="true" style="min-width: 8rem; max-width: 10rem;" />
+          </template>
+        </Column>
+
+        <Column field="paternalID" header="Paternal ID" sortable style="min-width: 7rem">
           <template #editor="{ data, field }">
             <InputText v-model="data[field]" style="width: 6rem" />
           </template>
+
+
         </Column>
-        <Column field="father" header="Father" sortable style="min-width: 7rem">
-          <template #editor="{ data, field }">
-            <InputText v-model="data[field]" style="width: 6rem" />
-          </template>
-        </Column>
-        <Column field="mother" header="Mother" sortable style="min-width: 7rem">
+        <Column field="maternalID" header="Maternal ID" sortable style="min-width: 7rem">
           <template #editor="{ data, field }">
             <InputText v-model="data[field]" style="width: 6rem" />
           </template>
@@ -85,15 +97,23 @@
             <Dropdown v-model="data[field]" :options="phenotypes" style="width: max-content" required="true" />
           </template>
         </Column>
+        <Column field="alias" header="Aliases" sortable style="min-width: 7rem">
+          <template #editor="{ data, field }">
+            <InputText v-model="data[field]" style="width: 6rem" />
+          </template>
+        </Column>
         <Column field="HPOList" header="HPO List" sortable style="min-width: 11rem">
           <template #body="{ data, field }">
-            <Chip v-for="hpo in data[field]" severity="success"> {{ hpo }} </Chip>
+            <!-- <p>{{ data[field] }}</p> -->
+            <Chip v-for="hpo in data[field]">
+              {{ hpo }}
+            </Chip>
           </template>
           <template #editor="{ data, field }">
             <Chips id="HPOList" v-model="data[field]" rows="3" cols="20" separator="," style="width: 6rem" />
           </template>
         </Column>
-        <Column field="starkTags" header="Stark Tags" sortable style="min-width: 11rem">
+        <Column field="starkTags" header="STARK Tags" sortable style="min-width: 11rem">
           <template #body="{ data, field }">
             <Chip v-for="starktag in data[field]" severity="success"> {{ starktag }} </Chip>
           </template>
@@ -117,16 +137,17 @@
         required.</small>
     </div>
     <div class="field">
-      <label for="alias">Alias</label>
-      <InputText id="alias" v-model="ped.alias" rows="3" cols="20" />
+      <label for="id">Family ID</label>
+      <InputText id="famID" v-model.trim="ped.famID" autofocus />
+    </div>
+
+    <div class="field">
+      <label for="paternalID">Paternal ID</label>
+      <InputText id="paternalID" v-model="ped.paternalID" rows="3" cols="20" />
     </div>
     <div class="field">
-      <label for="father">Father</label>
-      <InputText id="father" v-model="ped.father" rows="3" cols="20" />
-    </div>
-    <div class="field">
-      <label for="mother">Mother</label>
-      <InputText id="mother" v-model="ped.mother" rows="3" cols="20" />
+      <label for="maternalID">Maternal ID</label>
+      <InputText id="maternalID" v-model="ped.maternalID" rows="3" cols="20" />
     </div>
     <div class="field">
       <label for="sex">Sex</label>
@@ -138,10 +159,14 @@
         required="true" />
     </div>
     <div class="field">
+      <label for="alias">Alias</label>
+      <InputText id="alias" v-model="ped.alias" rows="3" cols="20" />
+    </div>
+    <div class="field">
       <label for="HPOList">HPO List (tags separated by a comma ",")</label>
       <Chips id="HPOList" v-model="ped.HPOList" rows="3" cols="20" separator="," />
       <div class="field">
-        <label for="starkTags">Stark Tags (tags separated by an exclamation point "!" )</label>
+        <label for="starkTags">STARK Tags (tags separated by an exclamation point "!" )</label>
         <Chips id="starkTags" v-model="ped.starkTags" rows="3" cols="20" separator="!" />
       </div>
       <div>
@@ -208,7 +233,23 @@
     <Button label="Leave this base" icon="pi pi-check" text severity="warning" @click="chooseBase()" />
 
   </Dialog>
+
+  <Dialog v-model:visible="downloadDialog" header="Download method" :modal="true" class="p-fluid"
+    style="width: fit-content;">
+    <div>
+      <p>
+        <InlineMessage severity="info"> Please choose what type of file do you want to download
+          the
+          data
+          as. </InlineMessage>
+        <br>
+        <SelectButton v-model="typeFile" @change="downloadFile()" :options="downloadTypes" style="text-align: center;" />
+      </p>{{ typeFile }}
+    </div>
+  </Dialog>
 </template>
+
+
 
 <script>
 import axios from 'axios';
@@ -217,7 +258,7 @@ import Error from './Error.vue';
 import { ref } from 'vue';
 import { isEqual } from 'lodash';
 import { FilterMatchMode } from "primevue/api";
-
+import { saveAs } from 'file-saver';
 
 
 
@@ -226,7 +267,7 @@ export default {
   data() {
     return {
       peds: ref(),
-      ped: ref({ "id": "", "alias": "", "father": "", "mother": "", "sex": "Unknown", "phenotype": "Missing", "HPOList": [], "starkTags": [] }),
+      ped: ref({ "id": "", "famID": "", "paternalID": "", "maternalID": "", "sex": "Unknown", "phenotype": "Missing", "alias": "", "HPOList": [], "starkTags": [] }),
       originalTable: ref(false),
       originalPed: ref({}),
       unsavedChanges: ref(false),
@@ -251,10 +292,15 @@ export default {
       sexes: ["M", "F", "Unknown"],
       phenotypes: ["Affected", "Unaffected", "Missing"],
       filters: ref({
-        'id': { value: null, matchMode: FilterMatchMode.CONTAINS }
+        'id': { value: null, matchMode: FilterMatchMode.CONTAINS },
+        'famID': { value: null, matchMode: FilterMatchMode.CONTAINS }
       }),
       showMessage: ref(false),
       showError: ref(false),
+      string_save: "",
+      downloadDialog: ref(false),
+      downloadTypes: ["Ped file", "Advanced Ped file"],
+      typeFile: '',
     };
   },
   components: {
@@ -405,7 +451,7 @@ export default {
     },
     cancelAddTemp() {
       this.pedDialog = false;
-      this.ped = { 'id': "", 'alias': "", "father": "", "mother": "", "sex": "Unknown", "phenotype": "Missing", "HPOList": [], "starkTags": [] };
+      this.ped = { 'id': "", 'alias': "", "paternalID": "", "maternalID": "", "sex": "Unknown", "phenotype": "Missing", "HPOList": [], "starkTags": [] };
       this.submitted = false;
     },
     getDuplicate(ped) {
@@ -424,15 +470,24 @@ export default {
       if (this.ped.id && this.idDuplicate == false) {
         console.log(this.ped);
         console.log("ped à rajouter");
+        // if (!this.ped.famID) {
+        //   var lastFamID = "";
+        //   var famtemp =0
+        //   for (fam of this.peds.famID) {
+        //     famtemp=fam
+
+        //   }
+        // }
         this.peds.push(JSON.parse(JSON.stringify(this.ped))); //copie dans peds (deep copy)
         this.pedDialog = false;
-        this.ped = { 'id': "", 'alias': "", "father": "", "mother": "", "sex": "Unknown", "phenotype": "Missing", "HPOList": [], "starkTags": [] };
+        this.ped = { 'id': "", 'alias': "", "paternalID": "", "maternalID": "", "sex": "Unknown", "phenotype": "Missing", "HPOList": [], "starkTags": [] };
         console.log("peds apres rajout");
         console.log(this.peds);
         this.tablesChanged();
         this.submitted = false;
-        this.showMessage = true;
         this.message = "Ped added ! Don't forget to save before leaving.";
+        this.showMessage = true;
+
       }
     },
     deleteSelectedPeds() {
@@ -486,6 +541,25 @@ export default {
           this.showError = true;
         })
     },
+    downloadFile() {
+      this.showError = false;
+      this.showMessage = false;
+      const path = "http://int0663.hus-integration.fr:4280/download"
+      let string_type = this.typeFile.substring(0, 3)
+
+      axios.post(path, { "typefile": this.typeFile }, { withCredentials: true, responseType: 'blob' })
+        .then((res) => {
+          let data = res.data;
+          saveAs(data, this.selectedBase + string_type + ".ped")
+
+        })
+        .catch((error) => {
+          console.log(error);
+          this.message = "Export Error"
+          this.showError = true;
+        })
+      this.typeFile = '';
+    },
 
   },
   created() {
@@ -518,15 +592,15 @@ export default {
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&display=swap');
 
 html {
   font-size: 75%;
 }
 
 .p-button-label {
-  font-family: 'Raleway', sans-serif;
-  font-weight: lighter;
-  font-size: 1.2rem;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
 
 }
 </style>

@@ -1,20 +1,11 @@
 <template>
-  <!-- <div class="text-center">
-            <h1><a class="text-dark" href="#" style="serif;
-  font-size: 4.5rem;  text-decoration: none;">Ped_raw</a></h1>
-  <Button  raised button severity="help" style="font-size: 1.5rem; margin: 0.5rem"> <a href="/" class="navbar-brand"> Pedigree </a> </Button>
-          <Button class="mb-2"  severity="warning" style="font-size: 1.5rem; margin: 0.5rem;">
-          <a href="/doc" class="navbar-brand"> Documentation </a>
-          </Button>
-          </div>
-           -->
-
   <ul class="list-unstyled">
     <div class="nav-scroller py-1 mb-2">
       <nav class="nav d-flex justify-content-between">
         <div style="display: inline-flex; float: left">
-          <img src="/logoprov5.png" alt="logo">
-          <h1><a class="text-dark" href="#" style="serif;
+          <a class="text-dark" href="/">
+            <img src="/logoprov5.png" alt="logo"></a>
+          <h1><a class="text-dark" href="/" style="serif;
                   font-size: 4rem;  text-decoration: none; margin: 2.5rem;">
               Ped_raw</a>
           </h1>
