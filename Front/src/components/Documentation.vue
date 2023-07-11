@@ -1,9 +1,9 @@
 <template >
   <div class="m-4">
     <Panel class="m-3" header="How to use" toggleable>
-      <p v-breathing-colors="sample">
+      <p class="m-2">
         Firstly, you will <u> need to choose which database to work with</u> : you can use the drop-down list to select an
-        existing one, or create a new one using the button and then select it.
+        existing one, or create a new one using the button and then refresh the page to select it.
         <br>
         Then, you will be able to <u>import data</u> or <u>add a new row</u> manually, as well as to <u>delete</u> or
         <u>modify</u> existing ones. <strong> Each one of these changes will need to be saved or they will be
@@ -11,32 +11,51 @@
       </p>
       <p class="m-2">
 
-        <u>Imported files</u> will need to have a special structure. They are <strong>required</strong> to have at least
-        one column for patient identification named 'id', 'Patient ID' or 'ID'. Here are the possible column names which
-        will be used in this website.
-        They can have as many columns as you wish, they will simply be ignored if not in the following list :
+        <u>Imported files</u> will need to have a special structure. If they have a header: they are
+        <strong>required</strong> to have at least
+        one column for patient identification named 'id', 'Patient ID' or 'ID'. They can be TSV, CSV or XLSX . Here are
+        the possible column names which
+        will be used in this website. <br>
+        They can have as many columns as you wish (as long as they have a header), they will simply be ignored if not in
+        the
+        following list :
       <ul>
-        <li> <strong> "Patient ID" column :</strong> "id", "ID", "Patient ID" </li>
-        <li> <strong> "Aliases" column :</strong> "alias", "Alias", "Aliases" </li>
-        <li> <strong> "Mother" column :</strong> "mother", "Mother" </li>
-        <li> <strong> "Father" column :</strong> "father", "Father" </li>
+        <li> <strong> "Family ID" column : </strong> "famID","Family ID" or "FAMID" </li>
+        <li> <strong> "Patient ID" column : </strong> "id", "ID", "Patient ID" or "Individual ID"</li>
+        <li> <strong> "Maternal ID" column : </strong> "maternalID", "Maternal ID", "mother" or "Mother" </li>
+        <li> <strong> "Paternal ID" column :</strong> "paternalID", "Paternal ID", "father", "Father" </li>
         <li> <strong> "Sex" column :</strong> "sex", "Sex"
           <br><strong>Values accepted :</strong> <u>Female</u> :
-          "F","Female","female",2,"2". <u>Male</u> :
-          "M","Male","male",1,"1"
+          "F", "Female", "female", 2, "2". <u>Male</u> :
+          "M", "Male", "male", 1, "1".
         </li>
         <li> <strong> "Phenotype" column :</strong> "phenotype, "Phenotype".
           <br> <strong>Values accepted :</strong> <u>Affected</u> :
-          "Affected","affected",2,"yes","Yes","2". <u>Unaffected</u> : "Unaffected", "unaffected","no", "No",1,"1"
+          "Affected", "affected", 2, "yes", "Yes", "2". <u>Unaffected</u> : "Unaffected", "unaffected", "no", "No", 1,
+          "1".
         </li>
+        <li> <strong> "Aliases" column : </strong> "alias", "Alias" or "Aliases" </li>
         <li> <strong> "HPO List" column :</strong> "HPOList", "hpolist", "HPO List" </li>
-        <li> <strong> "Stark Tags" column :</strong> "starkTags", "Stark Tags", "starktags" </li>
+        <li> <strong> "Stark Tags" column :</strong> "starkTags","Stark Tags", "starktags", "STARK Tags" or "tags" </li>
       </ul>
-      Moreover, you are able to <u>download</u> any of the files in CSV format.
+      </p>
+      <p class="m-2">
+        If they <strong>don't have a header</strong> : they will need to be at the Ped Format or our Advanced Ped Format.
+        The separator in the .ped format is the tabulation.
+        <br>
+        <u>Ped format have 6 columns in this order</u> : "Family ID" , "Individual ID", "Paternal ID", "Maternal ID",
+        "Sex"
+        and
+        "Phenotype".<br>
+        <u>Advanced Ped format have 9 columns in this order</u> : "Family ID" , "Individual ID", "Paternal ID", "Maternal
+        ID", "Sex",
+        "Phenotype", "Alias", "HPO List" and "STARK Tags". <br><br>
+
+        Moreover, you are able to <u>download</u> any of the files in those two formats.
       </p>
     </Panel>
 
-    <Panel class="m-3" header="Pedigree files" toggleable>
+    <Panel class="m-3" header="Pedigree files role" toggleable>
       <p class="m-2">
         Pedigree files document the structured descriptions of the familial relationship among samples in a study.
         <br>

@@ -88,8 +88,6 @@ def all_files():
             with open(session['CURRENT_FILE'], "w") as new_file:
                 new_file.write("[]")
 
-        # log.debug(f"request:{request.get_json()}")
-        log.debug(f"curr post /files post:{session['CURRENT_FILE']}")
         return {"status": "success"}
 
     elif request.method == "GET":
@@ -129,7 +127,6 @@ def upload_file():
             return error
 
         lines_list, extension = get_lines_content(post_data)
-        log.debug(f"LINES LIST AVANT USE {lines_list}")
         separator = check_extension(extension,lines_list[0])
         if separator.startswith("Import"):
             error = separator
@@ -146,14 +143,11 @@ def upload_file():
             if isinstance(file_as_list, str) == True:
                 error = file_as_list
                 return error
-        log.debug("debut get columns")
         file_list,list_col_order = get_columns(file_as_list, extension)
         if list_col_order == None:
             error = file_list
             return error
-        log.debug("debut fill dict")
         dict_list = fill_dict(file_list, list_col_order)
-        log.debug("debut merge peds")
         peds_merged = merge_peds(dict_list)
 
         # unique ids
@@ -163,7 +157,7 @@ def upload_file():
             error = "Import error : IDs are not unique."
             return error
         else:
-            log.debug("sortie")
+            log.debug("end upload")
             return jsonify(peds_merged)
 
 
@@ -186,27 +180,17 @@ def download_file():
                     line = ped_code(line)
         
                     print(line['famID'], line['id'], line['paternalID'], line['maternalID'], line['sex'], line['phenotype'], file=output, sep='\t')
-                    log.debug(f"{line['famID'], line['id'], line['paternalID'], line['maternalID'], line['sex'], line['phenotype']}")
+
             
 
         if post_data['typefile'] == 'Advanced Ped file':
             log.debug(" Advanced Ped file if")
             with open(os.path.join(tmp_dir,'download.ped'),'w') as output :
                 print('#Family ID', 'Individual ID', 'Paternal ID', 'Maternal ID', 'Sex', 'Phenotype', 'Alias', 'HPOList', 'STARK Tags', file=output, sep='\t')
-                # output.write("\t".join(['#Family ID', 'Individual ID', 'Paternal ID', 'Maternal ID', 'Sex', 'Phenotype', 'Alias', 'HPOList', 'STARK Tags']) + "\n")
+
                 log.debug(f"DATA:{data}")
                 for line in data :
-                    line = ped_code(line)
-                    for i in [line['HPOList'], line['starkTags']] :
-                        log.debug(f"i {i}")
-                        # if ',' in str(i):
-                        #     i = str(i)[0:2]+str(i)[3:-3]+str(i)[-2:]
-                        #     res = i.replace('\'', '')
-                        #     log.debug(f"i2 {i}")
-                        #     log.debug(f"res {res}")
-                    log.debug(f" avant {line['HPOList']}")
-                    log.debug(f" après {','.join(line['HPOList'])}")
-                    
+                    line = ped_code(line)                    
                     print(line['famID'], line['id'], line['paternalID'], line['maternalID'], line['sex'], line['phenotype'], line['alias'], ','.join(line['HPOList']), ','.join(line['starkTags']), file=output, sep='\t')
                 
         return send_file(os.path.join(tmp_dir,'download.ped'))

@@ -22,17 +22,13 @@ def get_lines_content(post_data):
         workbook = load_workbook(file_encoded)
         worksheet = workbook.worksheets[0]
         test = [cell.value for cell in list(worksheet.rows)[1]]
-        log.debug(f"testtt:{test} ")
         if len(test) != 1 : #differentiate between real excel file and csv with excel extension
             for r in worksheet.rows:
                 column = [cell.value for cell in r]
-                log.debug(f"column:{column} {len(column)}")
-                log.debug(f"column0:{column[0]} ")
                 for i in range(len(column)):
                     if isinstance(column[i], int):
                         column[i] = str(column[i])
                 lines_list.append(column)
-                log.debug("column0 pas liste")
             log.debug(f"excel lines list:{lines_list}")
         else :
             for r in worksheet.rows:
@@ -73,22 +69,15 @@ def line_to_list(line:str):
 def get_rows_list(lines_list:list , separator:str):
     file_as_list = []
     length = len(lines_list[0].split(separator))
-    log.debug(f" 0 0 !!! {lines_list[0][0]} ")
-    # if lines_list[0][0] == '#' :
-    #     lines_list[0] = lines_list[0][1:]
     for i in range(len(lines_list)):
         if separator == "," and "\"" in lines_list[i]: 
-            # log.debug(f" boucle guillemet {lines_list[i]}")
             line_col_list = line_to_list(lines_list[i])
-            # log.debug(f" boucle guillemet {line_col_list}")
         else:       
             line_col_list = lines_list[i].split(separator)
 
         if line_col_list == [""]:
             continue
-        log.debug(f"col_list {line_col_list}")
         file_as_list.append(line_col_list)
-        log.debug(f" len col {len(lines_list[0].split(separator))} len row {len(line_col_list)}")
         if length != len(line_col_list):
             error = "Import error : The rows do not all have the same column number. Row " + str(i) + " has not the same number of columns as the header (which is row 0)."
             return error
@@ -112,7 +101,6 @@ def reform_columns(file_list:list, authorized_colnames:list): #only if header
     for line in file_list :
         for i in reversed(range(len(to_ignore))):
             line.pop(to_ignore[i])
-    log.debug(f" FILELIST 2 {file_list}")
 
     return col_names_list, file_list
 
@@ -131,7 +119,6 @@ def get_columns(file_list0:list,extension:str):
 
     if extension != 'ped' or '#' in file_list0[0][0]: #if header
         session['header'] = True
-        log.debug("boucle header")
         if "id" not in file_list0[0] and "Patient ID" not in file_list0[0] and "ID" not in  file_list0[0] and 'Individual ID' not in file_list0[0]:
             error="Import error : An id column is missing in the header. It can be named 'id', 'Patient ID', 'Individual ID' or 'ID'."
             return error, None
@@ -147,23 +134,20 @@ def get_columns(file_list0:list,extension:str):
             for col_options in authorized_colnames : #for each pack of allowed column names
                 if col_name in col_options : #check if column name in allowed pack        
                     list_col_order.append(col_options[0]) #add the right name for the json
-                    # log.debug(f" colname :{col_name}, col option : {col_options}")
-        log.debug(f"SESSION HEADER {session['header']}")
+
         return file_list,list_col_order
+    
     elif extension == 'ped' and len(file_list0[0]) == 6 :
         session['header'] = False
-        log.debug("boucle pas header 6 colonnes")
         list_col_order = ["famID" ,"id", "paternalID","maternalID","sex","phenotype" ]
-        log.debug(f"SESSION HEADER {session['header']}")
         return file_list0,list_col_order
+    
     elif extension == 'ped' and len(file_list0[0]) == 9 :
         session['header'] = False
-        log.debug("boucle pas header 9 colonnes")
         list_col_order = ["famID" ,"id", "paternalID","maternalID","sex","phenotype","alias", "HPOList", "starkTags" ]
-        log.debug(f"SESSION HEADER {session['header']}")
         return file_list0,list_col_order
+    
     else :
-        log.debug("boucle pas header pas 6 colonnes")
         error="Import error : Wrong format : a ped needs a header, or no header but 6 columns if it is a stric ped file or 9 columns if it is advanced"
         return error, None
     
@@ -171,22 +155,21 @@ def get_columns(file_list0:list,extension:str):
 
 def fill_dict(file_list:list, list_col_order:list):
     dict_list = []
-    log.debug(f" fill dict file_list {file_list}")
     log.debug(f"SESSION HEADER {session['header']}")
+
     if session['header'] == False :
         addition=0
-    else :
+    else : # to not add the header to the table
         addition=1
+        
     for line in range(len(file_list)-addition):  # get dictionnaries in list, for each line
         mydict = OrderedDict()
-        log.debug(f" fill dict list_col_order {list_col_order}")
         for n in range(len(list_col_order)):  # get lines in dictionnaries, for each column
             column = list_col_order[n]
             value = file_list[line+addition][n]
             if column == "HPOList" or column == "starkTags":
                 mydict[column] = value.split(',')
                 
-                log.debug(f"rentre dans boucle {column} avec value :{value}, donne {mydict[column]}")
             elif column == "sex" :
                 if value in ["F","Female","female",2,"2"] :
                     mydict[column] = "F"
@@ -204,16 +187,14 @@ def fill_dict(file_list:list, list_col_order:list):
             
             else :
                 mydict[column] = value
-            # log.debug(f"DICT {mydict}")
         dict_list.append(mydict)
     return dict_list
 
 
 
 def merge_peds(dict_list:list):
-    with open(session['CURRENT_FILE'], "r") as PEDS:
+    with open(session['CURRENT_FILE'], "r") as peds:
         log.debug(f"/up 2 curr: {session['CURRENT_FILE']}")
-        data = json.load(PEDS)
-        # log.debug(f"/up data1 : {data}")
+        data = json.load(peds)
         peds_merged = data + dict_list
         return peds_merged

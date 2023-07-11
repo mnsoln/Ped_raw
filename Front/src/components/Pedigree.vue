@@ -104,7 +104,6 @@
         </Column>
         <Column field="HPOList" header="HPO List" sortable style="min-width: 11rem">
           <template #body="{ data, field }">
-            <!-- <p>{{ data[field] }}</p> -->
             <Chip v-for="hpo in data[field]">
               {{ hpo }}
             </Chip>
