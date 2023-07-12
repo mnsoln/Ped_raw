@@ -28,4 +28,5 @@ You also need to change the variable "serverURL" in the vue files.
 ```sh
 docker-compose up
 ```
-
+![image](https://github.com/mnsoln/Ped_raw/assets/107541938/cbee3a3a-df20-4b80-ada6-a2843020cc63)
+screenshot from 12/07/2023
