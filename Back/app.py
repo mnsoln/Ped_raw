@@ -42,7 +42,8 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials = True)
 ##PED
 
 def get_files():
-    files = glob.glob("../Data/*.json")
+    path_to_data = "../Data/"
+    files = glob.glob(path_to_data+ "*.json")
     return files
 
 
@@ -140,6 +141,7 @@ def upload_file():
                 else :
                     separator = ","
             file_as_list = get_rows_list(lines_list,separator)
+            log.debug(f"files_as_list:{file_as_list}")
             if isinstance(file_as_list, str) == True:
                 error = file_as_list
                 return error
@@ -172,9 +174,7 @@ def download_file():
         post_data = request.get_json()
         with open (session['CURRENT_FILE'],'r') as input :
                 data = json.load(input)
-        log.debug(f"data {data}")
         if post_data['typefile'] == 'Ped file': 
-            log.debug("peddd sam")
             
             with open(os.path.join(tmp_dir,'download.ped'),'w') as output :
                 print('#Family ID', 'Individual ID', 'Paternal ID', 'Maternal ID', 'Sex', 'Phenotype', file=output, sep='\t')
@@ -191,7 +191,6 @@ def download_file():
             with open(os.path.join(tmp_dir,'download.ped'),'w') as output :
                 print('#Family ID', 'Individual ID', 'Paternal ID', 'Maternal ID', 'Sex', 'Phenotype', 'Alias', 'HPOList', 'STARK Tags', file=output, sep='\t')
 
-                log.debug(f"DATA:{data}")
                 for line in data :
                     line = ped_code(line)                    
                     print(line['famID'], line['id'], line['paternalID'], line['maternalID'], line['sex'], line['phenotype'], line['alias'], ','.join(line['HPOList']), ','.join(line['starkTags']), file=output, sep='\t')

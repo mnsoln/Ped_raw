@@ -10,13 +10,14 @@ from openpyxl import load_workbook
 
 
 def get_lines_content(post_data):
+    """ Takes an uploaded file, returns a list with each element being a row of the file.
+    """
     log.debug(f"postdata:{post_data}")
     file_encoded = post_data["file"]
-    log.debug(f"file encoded:{file_encoded}")
     filename = file_encoded.filename
     extension = filename.rsplit('.',1)[1]
     myfile = io.TextIOWrapper(file_encoded, encoding="utf-8-sig")  # decoding
-    log.debug(f"extension:{extension}")
+    log.debug(f"filename: {filename} extension:{extension}")
     if extension == 'xlsx':
         lines_list = []
         workbook = load_workbook(file_encoded)
@@ -67,12 +68,14 @@ def line_to_list(line:str):
     return result
 
 def get_rows_list(lines_list:list , separator:str):
+    """Takes a list with each element being a row of the file. Check the file format and the number of columns per row. Returns a list of list : list of the rows containing a list of the columns.   """
     file_as_list = []
     length = len(lines_list[0].split(separator))
     for i in range(len(lines_list)):
         if separator == "," and "\"" in lines_list[i]: 
             line_col_list = line_to_list(lines_list[i])
-        else:       
+        else:
+            log.debug('csv')       
             line_col_list = lines_list[i].split(separator)
 
         if line_col_list == [""]:
@@ -85,6 +88,7 @@ def get_rows_list(lines_list:list , separator:str):
 
 
 def reform_columns(file_list:list, authorized_colnames:list): #only if header
+    """ Takes a list of list of a file WITH A HEADER : list of the rows containing a list of the columns.  Removes the columns that are not going to be used and get a list of the columns that will be used. Returns the list of list without the useless columns and the list of columns used. """
     to_ignore=[]
     col_names_list = []
 
@@ -105,8 +109,9 @@ def reform_columns(file_list:list, authorized_colnames:list): #only if header
     return col_names_list, file_list
 
 def get_columns(file_list0:list,extension:str):
+    """Takes a list of list of a file : list of the rows containing a list of the columns and the extension file. Checks if there is a header and if there is an id column missing. Returns the same list without the useless columns and the list of the columns used with the right order.
+    """
     list_col_order=[]
-    error=""
     authorized_colnames =[["id","Individual ID","Patient ID", "ID"],
                           ["famID","Family ID", "FAMID"," Family ID"],
                 [ "alias","Alias", "Aliases"],
@@ -117,7 +122,7 @@ def get_columns(file_list0:list,extension:str):
                 ["HPOList", "HPO List", "hpolist"],
                 ["starkTags","Stark Tags","starktags","STARK Tags", "tags"]]
 
-    if extension != 'ped' or '#' in file_list0[0][0]: #if header
+    if extension != 'ped' or '#' in file_list0[0][0]: # header present
         session['header'] = True
         if "id" not in file_list0[0] and "Patient ID" not in file_list0[0] and "ID" not in  file_list0[0] and 'Individual ID' not in file_list0[0]:
             error="Import error : An id column is missing in the header. It can be named 'id', 'Patient ID', 'Individual ID' or 'ID'."
@@ -137,23 +142,24 @@ def get_columns(file_list0:list,extension:str):
 
         return file_list,list_col_order
     
-    elif extension == 'ped' and len(file_list0[0]) == 6 :
+    elif extension == 'ped' and len(file_list0[0]) == 6 : # ped file
         session['header'] = False
         list_col_order = ["famID" ,"id", "paternalID","maternalID","sex","phenotype" ]
         return file_list0,list_col_order
     
-    elif extension == 'ped' and len(file_list0[0]) == 9 :
+    elif extension == 'ped' and len(file_list0[0]) == 9 : # advanced ped file
         session['header'] = False
         list_col_order = ["famID" ,"id", "paternalID","maternalID","sex","phenotype","alias", "HPOList", "starkTags" ]
         return file_list0,list_col_order
     
     else :
-        error="Import error : Wrong format : a ped needs a header, or no header but 6 columns if it is a stric ped file or 9 columns if it is advanced"
+        error="Import error : Wrong format : a ped needs either a header, or no header but 6 columns if it is a stric ped file or 9 columns if it is advanced. Check Documentation."
         return error, None
     
 
 
 def fill_dict(file_list:list, list_col_order:list):
+    """ Takes a list of list of the file and the list with the right order of the columns. Returns a list of dictionnaries (one for each row) with the right format for the values."""
     dict_list = []
     log.debug(f"SESSION HEADER {session['header']}")
 
@@ -170,6 +176,7 @@ def fill_dict(file_list:list, list_col_order:list):
             if column == "HPOList" or column == "starkTags":
                 mydict[column] = value.split(',')
                 
+            #columns with special values
             elif column == "sex" :
                 if value in ["F","Female","female",2,"2"] :
                     mydict[column] = "F"
@@ -184,7 +191,8 @@ def fill_dict(file_list:list, list_col_order:list):
                     mydict[column] = "Unaffected"
                 else :
                     mydict[column] = "Missing"
-            
+
+            #other columns
             else :
                 mydict[column] = value
         dict_list.append(mydict)
@@ -199,28 +207,32 @@ def merge_peds(dict_list:list):
         peds_merged = data + dict_list
         return peds_merged
     
+
 def check_fam_id(peds_merged):
-    liste_famID=[]
+    """ Auto increment famID"""
+    famID_list=[]
     for ped in peds_merged :
-        # log.debug(f"famid {ped['famID']} {ped['famID'].startswith('FAM')} {len(ped['famID'])}")
-        if ped['famID'].startswith('FAM') and len(ped['famID'])==6 :
-            log.debug("rentre dans boucle liste")
-            liste_famID.append(int(ped['famID'][-3:]))
-    log.debug(f"listefamid {liste_famID}")
+        if 'famID' not in ped.keys():
+            ped['famID'] = ""
+        elif  ped['famID'].startswith('FAM') and len(ped['famID'])==6 :
+            famID_list.append(int(ped['famID'][-3:]))
 
     
     for ped in peds_merged :
-        if len(liste_famID) > 0 :
-            new_fam_num = max(liste_famID)+1
-        else :
-            new_fam_num = 1
-        if ped['famID'] == '' :
-        
+        if ped['famID'] == "" :
+            new_fam_num = 0
+            if len(famID_list) > 0 :
+                new_fam_num = max(famID_list)+1
+            else :
+                new_fam_num += 1
+                famID_list.append(new_fam_num)
+
             if len(str(new_fam_num)) == 1:
                 ped['famID'] = 'FAM' + '00' + str(new_fam_num)
             elif len(str(new_fam_num)) == 2:
                 ped['famID'] = 'FAM' +'0' + str(new_fam_num)
             elif len(str(new_fam_num)) == 3:
                 ped['famID'] ='FAM' + str(new_fam_num)
+
     return peds_merged
 

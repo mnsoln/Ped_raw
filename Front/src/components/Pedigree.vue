@@ -311,12 +311,8 @@ export default {
     onRowEditSave(event) {
       this.showError = false;
       this.submitted = true;
-      console.log("i am here");
-      console.log(this.ped);
-      console.log("event:");
-      console.log(event);
       let { newData, index } = event;
-      console.log("newData:", newData);
+      console.log("new data after edit:", newData);
       this.getDuplicate(newData);
       if (newData.id != this.peds[index].id && this.idDuplicate) { // si l'id a change et qu'il existait deja
         this.message = "The ID you are trying to edit is already used. Every row needs to have a unique ID, please try again."
@@ -331,11 +327,10 @@ export default {
     getPeds() {
       this.showError = false;
       const path = this.serverURL + '/ped';
-      console.log('getpeds')
       axios.get(path, { withCredentials: true })
         .then((res) => {
           this.peds = res.data;
-          console.log('peds récupéré', this.peds);
+          console.log('peds gotten', this.peds);
           if (this.originalTable) {
             this.getOriginal();
             this.originalTable = false;
@@ -353,11 +348,10 @@ export default {
       axios.get(path, { withCredentials: true })
         .then((res) => {
           this.bases = res.data;
-          console.log("getBases:", this.bases);
+          console.log("get all the bases available:", this.bases);
         });
     },
     selectBase() {
-      console.log("selectbase");
       if (this.unsavedChanges) {
         this.dialogUnsaved = true;
       } else {
@@ -367,7 +361,6 @@ export default {
     },
     chooseBase() {
       this.showError = false;
-      console.log('choose')
       this.unsavedChanges = false;
       this.dialogUnsaved = false;
       this.selectedPeds = [];
@@ -376,7 +369,7 @@ export default {
       const path = this.serverURL + '/files'
       axios.post(path, { "mybase": this.selectedBase }, { withCredentials: true })
         .then(() => {
-          console.log("postBase:", this.selectedBase);
+          console.log("base chosen:", this.selectedBase);
         })
         .catch((error) => {
           console.log(error);
@@ -385,7 +378,6 @@ export default {
 
         })
         .finally(() => {
-          console.log("finally:", this.selectedBase)
           this.getPeds();
         });
       this.baseDialog = false;
@@ -414,9 +406,8 @@ export default {
 
     },
     getOriginal() {
-      console.log("getoriginal:", this.peds)
       this.originalPed = JSON.parse(JSON.stringify(this.peds));
-      console.log('peds original', this.originalPed);
+      console.log('original ped', this.originalPed);
       this.unsavedChanges = false;
     },
     savePedsDef() {
@@ -424,29 +415,24 @@ export default {
       this.showError = false;
       const path = this.serverURL + '/ped';
       this.payload = JSON.parse(JSON.stringify(this.peds));
-      console.log(this.peds);
-      console.log("payload");
-      console.log(this.payload);
+      console.log("payload (what will be saved)", this.payload);
       axios.post(path, this.payload, { withCredentials: true })
         .then(() => {
           this.originalTable = true;
           this.getPeds();
-          console.log('Ajouté !');
+          console.log('Add complete !');
           this.confirmSaveDialog = false;
           this.getOriginal();
           this.unsavedChanges = false;
-          console.log('changes then?', this.unsavedChanges);
           this.message = " The file has been saved.";
           this.showMessage = true;
         })
         .catch((error) => {
           console.log(error);
-          console.log('changes error?', this.unsavedChanges);
           this.confirmSaveDialog = false;
           this.message = "Error happened while saving peds";
           this.showError = true;
         });
-      console.log('changes?', this.unsavedChanges);
 
     },
     cancelAddTemp() {
@@ -464,65 +450,61 @@ export default {
     addPedTemp() {
       this.showMessage = false;
       this.submitted = true;
-      console.log("ped id", this.ped.id);
       this.getDuplicate(this.ped)
 
       if (this.ped.id && !this.idDuplicate) {
-        console.log(this.ped);
-        console.log("ped à rajouter");
+        console.log("ped we want to add", this.ped);
 
-        let ListeFamID = new Array();
         if (!this.ped.famID) {
-          let biggerfam = 0;
-          // let newfamID = "";
-          for (let oneped of this.peds) {
-
-            console.log('famid', oneped.famID)
-            ListeFamID.push(oneped.famID)
-            console.log('liste', ListeFamID)
-          }
-          for (let fam of ListeFamID) {
-            let famtemp = parseInt(fam.substring(3, 7));
-            if (famtemp > biggerfam) {
-              biggerfam = famtemp;
-            }
-          }
-          let newfamNum = biggerfam + 1;
-          let newfamLength = newfamNum.toString().length;
-          if (newfamLength == 1) {
-            console.log('1ere boucle');
-            var newfamID = 'FAM' + '00' + newfamNum.toString();
-            console.log('newfamid', newfamID)
-          }
-          else if (newfamLength == 2) {
-            console.log('boucle 2');
-            var newfamID = 'FAM' + '0' + newfamNum.toString();
-          }
-          else if (newfamLength == 3) {
-            console.log('boucle 3')
-            var newfamID = 'FAM' + newfamNum.toString();
-          }
-          else if (ListeFamID.length < 1) {
-            var newfamID = 'FAM001'
-          }
-          console.log('newfamid', newfamID)
-          this.ped.famID = newfamID
-
-
-
+          this.checkFamIDadd();
         }
 
         this.peds.push(JSON.parse(JSON.stringify(this.ped))); //copie dans peds (deep copy)
         this.pedDialog = false;
         this.ped = { 'id': "", 'alias': "", "paternalID": "", "maternalID": "", "sex": "Unknown", "phenotype": "Missing", "HPOList": [], "starkTags": [] };
-        console.log("peds apres rajout");
-        console.log(this.peds);
+        console.log("peds after the add", this.peds);
         this.tablesChanged();
         this.submitted = false;
         this.message = "Ped added ! Don't forget to save before leaving.";
         this.showMessage = true;
 
       }
+    },
+    checkFamIDadd() {
+      let ListeFamID = new Array();
+      let biggerfam = 0;
+      for (let oneped of this.peds) {
+
+        ListeFamID.push(oneped.famID)
+        console.log('famIDs list', ListeFamID)
+      }
+      for (let fam of ListeFamID) {
+        let famtemp = parseInt(fam.substring(3, 7));
+        if (famtemp > biggerfam) {
+          biggerfam = famtemp;
+        }
+      }
+      let newfamNum = biggerfam + 1;
+      let newfamLength = newfamNum.toString().length;
+      if (newfamLength == 1) {
+        console.log('1ere boucle');
+        var newfamID = 'FAM' + '00' + newfamNum.toString();
+        console.log('newfamid', newfamID)
+      }
+      else if (newfamLength == 2) {
+        console.log('boucle 2');
+        var newfamID = 'FAM' + '0' + newfamNum.toString();
+      }
+      else if (newfamLength == 3) {
+        console.log('boucle 3')
+        var newfamID = 'FAM' + newfamNum.toString();
+      }
+      else if (ListeFamID.length < 1) {
+        var newfamID = 'FAM001'
+      }
+      console.log('newfamid', newfamID)
+      this.ped.famID = newfamID
+
     },
     deleteSelectedPeds() {
       this.showMessage = false;
@@ -531,12 +513,10 @@ export default {
       );
       this.deletePedsDialog = false;
       this.selectedPeds = null;
-      console.log('delete');
-      console.log(this.peds);
+      console.log('deleted');
       this.tablesChanged();
-      this.showMessage = true;
       this.message = "Ped removed ! Don't forget to save before leaving.";
-
+      this.showMessage = true;
     },
     tablesChanged() {
       if (!isEqual(this.peds, this.originalPed)) {
@@ -602,31 +582,10 @@ export default {
     this.getBases();
     this.unsavedChanges = false;
   },
-  beforeRouteLeave(to, from, next) {
-
-    if (!this.unsavedChanges) {
-      next(false)
-    } else {
-      window.confirm('Do you really want to leave? you have unsaved changes!');
-      next()
-    }
-    window.onbeforeunload()
-    this.unsavedChanges ? true : null;
-  },
-  // beforeRouteUpdate (to, from , next) {
-  //   const answer = window.confirm('Do you really want to leave? you have unsaved changes!')
-  //   if (answer) {
-  //     next(false)
-  //   } else {
-  //     next(false)
-  //   }
-  // },
-
 };
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&display=swap');
 
 html {

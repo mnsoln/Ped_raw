@@ -1,2 +1,0 @@
-# Family ID	Individual ID	Paternal ID	Maternal ID	Sex	Phenotype	Alias	HPOList	STARK Tags
-fam	pat	fat	mam	1	1	al	['hpo1', 'hpo2']	['stark1', 'stark2']

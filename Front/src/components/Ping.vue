@@ -22,7 +22,6 @@ export default {
       axios.post(path, { msg: this.msg })
         .then((res) => {
           this.msg = res.data;
-          //console.log(this.msg);
         })
         .catch((error) => {
 
