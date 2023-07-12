@@ -198,3 +198,29 @@ def merge_peds(dict_list:list):
         data = json.load(peds)
         peds_merged = data + dict_list
         return peds_merged
+    
+def check_fam_id(peds_merged):
+    liste_famID=[]
+    for ped in peds_merged :
+        # log.debug(f"famid {ped['famID']} {ped['famID'].startswith('FAM')} {len(ped['famID'])}")
+        if ped['famID'].startswith('FAM') and len(ped['famID'])==6 :
+            log.debug("rentre dans boucle liste")
+            liste_famID.append(int(ped['famID'][-3:]))
+    log.debug(f"listefamid {liste_famID}")
+
+    
+    for ped in peds_merged :
+        if len(liste_famID) > 0 :
+            new_fam_num = max(liste_famID)+1
+        else :
+            new_fam_num = 1
+        if ped['famID'] == '' :
+        
+            if len(str(new_fam_num)) == 1:
+                ped['famID'] = 'FAM' + '00' + str(new_fam_num)
+            elif len(str(new_fam_num)) == 2:
+                ped['famID'] = 'FAM' +'0' + str(new_fam_num)
+            elif len(str(new_fam_num)) == 3:
+                ped['famID'] ='FAM' + str(new_fam_num)
+    return peds_merged
+

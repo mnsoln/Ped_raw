@@ -3,7 +3,7 @@ from flask_cors import CORS
 import json
 import glob
 import logging as log
-from upload import get_lines_content, check_extension, get_rows_list, get_columns, merge_peds, fill_dict
+from upload import get_lines_content, check_extension, get_rows_list, get_columns, merge_peds, fill_dict,check_fam_id
 import os
 
 
@@ -156,9 +156,12 @@ def upload_file():
         if len(set(id_list)) != len(id_list):
             error = "Import error : IDs are not unique."
             return error
-        else:
-            log.debug("end upload")
-            return jsonify(peds_merged)
+        
+        peds_merged = check_fam_id(peds_merged)
+
+            
+        log.debug("end upload")
+        return jsonify(peds_merged)
 
 
 @app.route("/download", methods=["GET", "POST"])

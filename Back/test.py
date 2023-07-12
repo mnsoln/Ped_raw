@@ -46,8 +46,12 @@
 # print(result1)
 # print(result2)
 
-intt = 12
-stri = 'fam'
-lol = stri + str(intt)
-print(lol)
+# intt = 12
+# stri = 'fam'
+# lol = stri + str(intt)
+# print(lol)
+string = 'fam002'
+print(string[-3:])
+print(int(string[-3:]))
+print(len(str(int(string[-3:]))))
 

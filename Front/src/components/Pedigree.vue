@@ -35,8 +35,8 @@
           <span
             v-tooltip.bottom="{ value: `<h6> Use this button when you have selected a database to import data into it. <br> <strong> More information is available in the 'Documentation' page. </strong> </h6>`, escape: true, class: 'custom-error' }">
             <FileUpload mode="basic" accept=".csv,.tsv,.xlsx,.ped" :maxFileSize="1000000" label="Import"
-              chooseLabel="Import" class="m-1" :disabled="!isBaseSelected" :auto="true"
-              url="http://int0663.hus-integration.fr:4280/upload" customUpload @uploader="onUpload" />
+              chooseLabel="Import" class="m-1" :disabled="!isBaseSelected" :auto="true" url="localhost:4280/upload"
+              customUpload @uploader="onUpload" />
           </span>
           <span
             v-tooltip.left="{ value: `<h6> Use this button when you have selected a database to download its data. </h6>`, escape: true, class: 'custom-error' }">
@@ -265,6 +265,7 @@ import { saveAs } from 'file-saver';
 export default {
   data() {
     return {
+      serverURL: "http://int0663.hus-integration.fr:4280",
       peds: ref(),
       ped: ref({ "id": "", "famID": "", "paternalID": "", "maternalID": "", "sex": "Unknown", "phenotype": "Missing", "alias": "", "HPOList": [], "starkTags": [] }),
       originalTable: ref(false),
@@ -317,7 +318,7 @@ export default {
       let { newData, index } = event;
       console.log("newData:", newData);
       this.getDuplicate(newData);
-      if (newData.id != this.peds[index].id && this.idDuplicate == true) { // si l'id a change et qu'il existait deja
+      if (newData.id != this.peds[index].id && this.idDuplicate) { // si l'id a change et qu'il existait deja
         this.message = "The ID you are trying to edit is already used. Every row needs to have a unique ID, please try again."
         this.showError = true;
       } else {
@@ -329,13 +330,13 @@ export default {
     },
     getPeds() {
       this.showError = false;
-      const path = 'http://int0663.hus-integration.fr:4280/ped';
+      const path = this.serverURL + '/ped';
       console.log('getpeds')
       axios.get(path, { withCredentials: true })
         .then((res) => {
           this.peds = res.data;
           console.log('peds récupéré', this.peds);
-          if (this.originalTable == true) {
+          if (this.originalTable) {
             this.getOriginal();
             this.originalTable = false;
           }
@@ -348,7 +349,7 @@ export default {
 
     },
     getBases() {
-      const path = 'http://int0663.hus-integration.fr:4280/files'
+      const path = this.serverURL + '/files'
       axios.get(path, { withCredentials: true })
         .then((res) => {
           this.bases = res.data;
@@ -357,7 +358,7 @@ export default {
     },
     selectBase() {
       console.log("selectbase");
-      if (this.unsavedChanges == true) {
+      if (this.unsavedChanges) {
         this.dialogUnsaved = true;
       } else {
         this.chooseBase();
@@ -372,7 +373,7 @@ export default {
       this.selectedPeds = [];
       this.isBaseSelected = true;
       this.manualSelectedBase = (' ' + this.selectedBase).slice(1); //deep copy
-      const path = 'http://int0663.hus-integration.fr:4280/files'
+      const path = this.serverURL + '/files'
       axios.post(path, { "mybase": this.selectedBase }, { withCredentials: true })
         .then(() => {
           console.log("postBase:", this.selectedBase);
@@ -421,7 +422,7 @@ export default {
     savePedsDef() {
       this.showMessage = false;
       this.showError = false;
-      const path = 'http://int0663.hus-integration.fr:4280/ped';
+      const path = this.serverURL + '/ped';
       this.payload = JSON.parse(JSON.stringify(this.peds));
       console.log(this.peds);
       console.log("payload");
@@ -466,17 +467,51 @@ export default {
       console.log("ped id", this.ped.id);
       this.getDuplicate(this.ped)
 
-      if (this.ped.id && this.idDuplicate == false) {
+      if (this.ped.id && !this.idDuplicate) {
         console.log(this.ped);
         console.log("ped à rajouter");
-        // if (!this.ped.famID) {
-        //   var lastFamID = "";
-        //   var famtemp =0
-        //   for (fam of this.peds.famID) {
-        //     famtemp=fam
 
-        //   }
-        // }
+        let ListeFamID = new Array();
+        if (!this.ped.famID) {
+          let biggerfam = 0;
+          // let newfamID = "";
+          for (let oneped of this.peds) {
+
+            console.log('famid', oneped.famID)
+            ListeFamID.push(oneped.famID)
+            console.log('liste', ListeFamID)
+          }
+          for (let fam of ListeFamID) {
+            let famtemp = parseInt(fam.substring(3, 7));
+            if (famtemp > biggerfam) {
+              biggerfam = famtemp;
+            }
+          }
+          let newfamNum = biggerfam + 1;
+          let newfamLength = newfamNum.toString().length;
+          if (newfamLength == 1) {
+            console.log('1ere boucle');
+            var newfamID = 'FAM' + '00' + newfamNum.toString();
+            console.log('newfamid', newfamID)
+          }
+          else if (newfamLength == 2) {
+            console.log('boucle 2');
+            var newfamID = 'FAM' + '0' + newfamNum.toString();
+          }
+          else if (newfamLength == 3) {
+            console.log('boucle 3')
+            var newfamID = 'FAM' + newfamNum.toString();
+          }
+          else if (ListeFamID.length < 1) {
+            var newfamID = 'FAM001'
+          }
+          console.log('newfamid', newfamID)
+          this.ped.famID = newfamID
+
+
+
+        }
+
         this.peds.push(JSON.parse(JSON.stringify(this.ped))); //copie dans peds (deep copy)
         this.pedDialog = false;
         this.ped = { 'id': "", 'alias': "", "paternalID": "", "maternalID": "", "sex": "Unknown", "phenotype": "Missing", "HPOList": [], "starkTags": [] };
@@ -504,7 +539,7 @@ export default {
 
     },
     tablesChanged() {
-      if (isEqual(this.peds, this.originalPed) == false) {
+      if (!isEqual(this.peds, this.originalPed)) {
         this.unsavedChanges = true;
       } else {
         this.unsavedChanges = false;
@@ -518,7 +553,7 @@ export default {
       let formData = new FormData();
       formData.append('file', fileUp);
       console.log("fileup", fileUp);
-      const path = 'http://int0663.hus-integration.fr:4280/upload';
+      const path = this.serverURL + '/upload';
       axios.post(path, formData, { withCredentials: true })
         .then((res) => {
           console.log("fileup", fileUp);
@@ -543,13 +578,14 @@ export default {
     downloadFile() {
       this.showError = false;
       this.showMessage = false;
-      const path = "http://int0663.hus-integration.fr:4280/download"
+      const path = this.serverURL + "/download"
       let string_type = this.typeFile.substring(0, 3)
 
       axios.post(path, { "typefile": this.typeFile }, { withCredentials: true, responseType: 'blob' })
         .then((res) => {
           let data = res.data;
-          saveAs(data, this.selectedBase + string_type + ".ped")
+          saveAs(data, this.selectedBase + string_type + ".ped"); this.message = "The download of the '" + this.selectedBase + "' file has started.";
+          this.showMessage = true;
 
         })
         .catch((error) => {
@@ -568,7 +604,7 @@ export default {
   },
   beforeRouteLeave(to, from, next) {
 
-    if (this.unsavedChanges == false) {
+    if (!this.unsavedChanges) {
       next(false)
     } else {
       window.confirm('Do you really want to leave? you have unsaved changes!');

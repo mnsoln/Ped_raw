@@ -86,6 +86,7 @@ export default {
   name: 'Ping',
   data() {
     return {
+      serverURL: "http://int0663.hus-integration.fr:4280",
       msg: ref('MEDINA Solène !'),
 
 
@@ -93,7 +94,7 @@ export default {
   },
   methods: {
     getPingPong() {
-      const path = 'http://int0663.hus-integration.fr:4280/ping';
+      const path = this.serverURL + '/ping';
       axios.post(path, { msg: this.msg }, { withCredentials: true })
         .then((res) => {
           this.msg = res.data;
