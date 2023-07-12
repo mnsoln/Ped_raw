@@ -6,7 +6,8 @@ git clone https://github.com/mnsoln/Ped_raw.git
 cd Ped_raw
 ```
 
-You then need to update the .env file with your paths.
+
+You then need to update the .env file with your paths. You can use any folder you want for the Data folder.
 
 
 
@@ -21,6 +22,7 @@ npm install
 #then leave the container
 ```
 
+You also need to change the variable "serverURL" in the vue files.
 ## Launch
 
 ```sh
